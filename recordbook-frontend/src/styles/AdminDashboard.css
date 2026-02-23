@@ -1,0 +1,221 @@
+.admin-container {
+  padding: 20px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.add-btn {
+  padding: 10px 20px;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 90%;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.form-control label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+.input-field,
+.select-field,
+input[type="date"],
+input[type="number"],
+input[type="tel"],
+input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+.form-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.btn-cancel {
+  padding: 10px 20px;
+  background-color: #999;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-submit {
+  padding: 10px 20px;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-submit.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.loading, .error {
+  padding: 20px;
+}
+.filter-bar, .sort-bar {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-bar .select-field, .filter-bar .input-field {
+  min-width: 150px;
+}
+.reset-btn, .sort-bar .active {
+  background-color: #16a34a;
+  color: white;
+}
+.sort-btn {
+  padding: 8px 16px;
+  background-color: #ddd;
+  color: black;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.sort-btn.active {
+  background-color: #16a34a;
+  color: white;
+}
+.sort-label {
+  font-weight: bold;
+}
+.actions-header {
+  text-align: center;
+}
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.records-table th, .records-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+.records-table thead tr {
+  background-color: #f0f0f0;
+}
+.actions-cell {
+  text-align: center;
+}
+.action-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-right: 8px;
+  font-size: 12px;
+}
+.btn-edit {
+  background-color: #2563eb;
+  color: white;
+}
+.btn-delete {
+  background-color: #dc2626;
+  color: white;
+}
+.info-text {
+  margin-left: auto;
+  font-weight: bold;
+  color: #666;
+}
+.delete-modal {
+  max-width: 400px;
+  text-align: center;
+  padding: 40px 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+.delete-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+.delete-modal h3 {
+  color: #1f2937;
+  font-size: 22px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.delete-modal p {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+.delete-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.delete-actions button {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+.delete-actions .btn-cancel {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+.delete-actions .btn-cancel:hover:not(:disabled) {
+  background-color: #d1d5db;
+}
+.delete-actions .btn-delete-confirm {
+  background-color: #dc2626;
+  color: white;
+}
+.delete-actions .btn-delete-confirm:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+.delete-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
