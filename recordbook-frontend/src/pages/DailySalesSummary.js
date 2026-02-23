@@ -17,7 +17,6 @@ const DailySalesSummary = () => {
       setLoading(true);
       try {
         const response = await api.get('/api/sales');
-        console.log('Sales Records:', response.data);
         const records = Array.isArray(response.data) ? response.data : [];
         setSalesRecords(records);
 
