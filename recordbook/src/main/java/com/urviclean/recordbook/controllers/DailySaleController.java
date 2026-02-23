@@ -19,6 +19,7 @@ import com.urviclean.recordbook.repositories.SalesmanExpenseRepository;
 import com.urviclean.recordbook.repositories.SalesmanRepository;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -132,6 +133,16 @@ public class DailySaleController {
             @RequestParam String code,
             @RequestParam Integer quantity) {
         return repository.findByProductCodeAndQuantity(code, quantity);
+    }
+
+    // Report endpoint: /api/sales/report?startDate=2026-01-01&endDate=2026-01-31
+    @GetMapping("/report")
+    public ResponseEntity<List<DailySaleRecord>> getReportData(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        LocalDate start = startDate != null ? startDate : LocalDate.now().minusDays(29);
+        LocalDate end = endDate != null ? endDate : LocalDate.now();
+        return ResponseEntity.ok(repository.findBySaleDateBetweenOrderBySaleDateAsc(start, end));
     }
 
     // POST with request body for alias + expenses + daily sales

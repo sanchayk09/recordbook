@@ -37,7 +37,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchSales();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSales = async () => {
     try {
