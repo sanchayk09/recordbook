@@ -15,6 +15,7 @@ const Header = () => {
         <Link to="/admin-operations" className="nav-button admin">Admin Ops</Link>
         <Link to="/daily-sales" className="nav-button">Daily Sales</Link>
         <Link to="/daily-sales-summary" className="nav-button">Daily Sales Table</Link>
+        <Link to="/report" className="nav-button report">Report</Link>
       </div>
     </nav>
   );

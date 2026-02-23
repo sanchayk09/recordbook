@@ -30,9 +30,7 @@ const DailySalesDump = () => {
       setLoadingSalesmen(true);
       try {
         const response = await api.get('/api/v1/admin/salesmen/aliases');
-        console.log('Salesmen API Response:', response.data);
         const salesmen = Array.isArray(response.data) ? response.data : [];
-        console.log('Processed salesmen list:', salesmen);
         setSalesmenList(salesmen);
       } catch (error) {
         console.error('Error loading salesmen:', error);
@@ -131,7 +129,7 @@ const DailySalesDump = () => {
   }, [salesData]);
 
   return (
-    <div style={{ padding: '30px', fontFamily: 'Calibri, sanres-serif' }}>
+    <div style={{ padding: '30px', fontFamily: 'Calibri, sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <h2 style={{ margin: 0 }}>Daily Sales Dump</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

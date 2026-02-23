@@ -21,4 +21,4 @@ export const sortSales = (sales = [], type = 'date', order = 'asc') => {
   return sorted;
 };
 
-export default { filterSales, sortSales };
+export default { filterSales, sortSales }; // eslint-disable-line import/no-anonymous-default-export
