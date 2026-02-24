@@ -8,7 +8,7 @@ import java.time.LocalDate;
 public class DailySaleRecordInput {
     public Integer slNo;
 
-    @JsonFormat(pattern = "dd/MM/yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     public LocalDate saleDate;
 
     public String customerName;

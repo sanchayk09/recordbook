@@ -97,9 +97,9 @@ const DailySalesDump = () => {
 
       const requestBody = {
         salesmanAlias: selectedSalesman,
-        date: expenseDate.split('-').reverse().join('/'), // Convert YYYY-MM-DD to DD/MM/YYYY
+        date: expenseDate, // Keep as yyyy-mm-dd format
         expenses: expenseEntries.filter(e => e.category?.trim() && e.amount !== '').map(e => ({
-          expenseDate: expenseDate.split('-').reverse().join('/'),
+          expenseDate: expenseDate, // Keep as yyyy-mm-dd format
           category: e.category,
           amount: Number(e.amount)
         })),

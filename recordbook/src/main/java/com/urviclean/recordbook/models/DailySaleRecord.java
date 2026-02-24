@@ -53,6 +53,9 @@ public class DailySaleRecord {
     @Column(name = "agent_commission", precision = 10, scale = 2)
     private BigDecimal agentCommission;
 
+    @Column(name = "volume_sold", precision = 12, scale = 2)
+    private BigDecimal volumeSold;
+
 
     public Long getId() {
         return id;
@@ -156,6 +159,14 @@ public class DailySaleRecord {
 
     public void setAgentCommission(BigDecimal agentCommission) {
         this.agentCommission = agentCommission;
+    }
+
+    public BigDecimal getVolumeSold() {
+        return volumeSold;
+    }
+
+    public void setVolumeSold(BigDecimal volumeSold) {
+        this.volumeSold = volumeSold;
     }
 
 

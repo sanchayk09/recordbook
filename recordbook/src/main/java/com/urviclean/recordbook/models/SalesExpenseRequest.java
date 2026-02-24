@@ -8,7 +8,7 @@ import java.util.List;
 public class SalesExpenseRequest {
     public String salesmanAlias;
 
-    @JsonFormat(pattern = "dd/MM/yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     public LocalDate date;
 
     public List<ExpenseItem> expenses;

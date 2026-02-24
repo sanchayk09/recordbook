@@ -9,7 +9,7 @@ import java.time.LocalDate;
  * Response DTO for SalesmanExpense without the ID field
  */
 public class SalesmanExpenseResponse {
-    @JsonFormat(pattern = "dd/MM/yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     public LocalDate expenseDate;
 
     public String category;

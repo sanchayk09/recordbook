@@ -14,9 +14,11 @@
 -- ----------------------------
 DROP TABLE IF EXISTS daily_sale_record;
 DROP TABLE IF EXISTS daily_expense_record;
+DROP TABLE IF EXISTS daily_summary;
 DROP TABLE IF EXISTS sales_records;
 DROP TABLE IF EXISTS salesman_expenses;
 
+DROP TABLE IF EXISTS product_cost_manual;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS salesmen;
 
@@ -102,6 +104,21 @@ CREATE TABLE products (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_products_name (product_name),
     INDEX idx_products_variant (variant)
+) ENGINE=InnoDB;
+
+-- ----------------------------
+-- 2b) Product Cost Manual (For manual cost entry by product code)
+-- ----------------------------
+CREATE TABLE product_cost_manual (
+    pid BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_name VARCHAR(100) NOT NULL,
+    product_code VARCHAR(20) NOT NULL,
+    cost DECIMAL(12,2) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_product_code (product_code),
+    INDEX idx_product_name (product_name),
+    INDEX idx_product_code (product_code)
 ) ENGINE=InnoDB;
 
 CREATE TABLE product_recipes (
@@ -306,7 +323,9 @@ CREATE TABLE daily_sale_record (
     product_code VARCHAR(20) NOT NULL,
     quantity INT NOT NULL,
     rate DECIMAL(10,2) NOT NULL,
-    revenue DECIMAL(12,2) NOT NULL
+    revenue DECIMAL(12,2) NOT NULL,
+    agent_commission DECIMAL(10,2),
+    volume_sold DECIMAL(12,2) COMMENT 'Calculated as quantity * volume_in_quantity based on product_code'
 );
 
 CREATE INDEX idx_salesman_name
@@ -314,3 +333,31 @@ ON daily_sale_record(salesman_name);
 
 CREATE INDEX idx_daily_sale_product_code
 ON daily_sale_record(product_code);
+
+-- ----------------------------
+-- 9) Daily Summary (Financial Summary per Salesman per Day)
+-- ----------------------------
+CREATE TABLE daily_summary (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    salesman_alias VARCHAR(100) NOT NULL,
+    sale_date DATE NOT NULL UNIQUE,
+
+    total_revenue DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    total_agent_commission DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    total_expense DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    material_cost DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+
+    net_profit DECIMAL(14,2) COMMENT 'Calculated as: total_revenue - total_agent_commission - total_expense - material_cost',
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_daily_summary_salesman
+        FOREIGN KEY (salesman_alias) REFERENCES salesmen(alias)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+
+    UNIQUE KEY uk_summary_alias_date (salesman_alias, sale_date),
+    INDEX idx_summary_date (sale_date),
+    INDEX idx_summary_alias (salesman_alias)
+) ENGINE=InnoDB;
+

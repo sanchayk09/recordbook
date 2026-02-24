@@ -11,7 +11,7 @@ import java.time.LocalDate;
 public class DailySaleRecordResponse {
     public Integer slNo;
 
-    @JsonFormat(pattern = "dd/MM/yyyy")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     public LocalDate saleDate;
 
     public String salesmanName;
@@ -24,6 +24,7 @@ public class DailySaleRecordResponse {
     public BigDecimal rate;
     public BigDecimal revenue;
     public BigDecimal agentCommission;
+    public BigDecimal volumeSold;
 
     public DailySaleRecordResponse() {
     }
@@ -41,6 +42,7 @@ public class DailySaleRecordResponse {
         this.rate = record.getRate();
         this.revenue = record.getRevenue();
         this.agentCommission = record.getAgentCommission();
+        this.volumeSold = record.getVolumeSold();
     }
 }
 

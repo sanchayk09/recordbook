@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
+import { getTodayDate, getCurrentMonth } from '../utils/dateUtils';
 
 const DailySalesSummary = () => {
   const [salesRecords, setSalesRecords] = useState([]);
@@ -10,42 +11,102 @@ const DailySalesSummary = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [salesmen, setSalesmen] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [filterType, setFilterType] = useState('today'); // 'today', 'date', 'week', 'month', 'range'
+  const [startDate, setStartDate] = useState(getTodayDate());
+  const [endDate, setEndDate] = useState(getTodayDate());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth()); // YYYY-MM format
+  const [selectedProduct, setSelectedProduct] = useState(''); // Empty string means no product filter
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc' for serial number sorting
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchSalesRecords = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get('/api/sales');
-        console.log('Sales Records:', response.data);
-        const records = Array.isArray(response.data) ? response.data : [];
-        setSalesRecords(records);
-
-        // Fetch salesmen for dropdown
-        const salesmenResponse = await api.get('/api/v1/admin/salesmen/aliases');
-        setSalesmen(Array.isArray(salesmenResponse.data) ? salesmenResponse.data : []);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        notifyError('Failed to load data: ' + (error.response?.data?.message || error.message));
-        setSalesRecords([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchSalesRecords();
   }, []);
 
+  const fetchSalesRecords = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/sales');
+      console.log('Sales Records:', response.data);
+      const records = Array.isArray(response.data) ? response.data : [];
+      setSalesRecords(records);
+
+      // Fetch salesmen for dropdown
+      const salesmenResponse = await api.get('/api/v1/admin/salesmen/aliases');
+      setSalesmen(Array.isArray(salesmenResponse.data) ? salesmenResponse.data : []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      notifyError('Failed to load data: ' + (error.response?.data?.message || error.message));
+      setSalesRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uniqueProducts = useMemo(() => {
+    const products = new Set(salesRecords.map(record => record.productCode).filter(Boolean));
+    return Array.from(products).sort();
+  }, [salesRecords]);
+
+  const getFilteredRecords = () => {
+    let filtered = salesRecords;
+
+    // Apply date filter
+    if (filterType === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      filtered = filtered.filter(record => record.saleDate === today);
+    } else if (filterType === 'date') {
+      filtered = filtered.filter(record => record.saleDate === selectedDate);
+    } else if (filterType === 'week') {
+      const today = new Date(selectedDate);
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      const startStr = weekStart.toISOString().split('T')[0];
+      const endStr = weekEnd.toISOString().split('T')[0];
+      filtered = filtered.filter(record => record.saleDate >= startStr && record.saleDate <= endStr);
+    } else if (filterType === 'month') {
+      filtered = filtered.filter(record => record.saleDate.startsWith(selectedMonth));
+    } else if (filterType === 'range') {
+      filtered = filtered.filter(record => record.saleDate >= startDate && record.saleDate <= endDate);
+    }
+
+    // Apply product filter
+    if (selectedProduct) {
+      filtered = filtered.filter(record => record.productCode === selectedProduct);
+    }
+
+    return filtered;
+  };
+
+  const filteredRecords = useMemo(() => {
+    return getFilteredRecords();
+  }, [salesRecords, filterType, selectedDate, startDate, endDate, selectedMonth, selectedProduct]);
+
+  const sortedRecords = useMemo(() => {
+    const records = [...filteredRecords];
+    return records.sort((a, b) => {
+      const aSlNo = Number(a.slNo) || 0;
+      const bSlNo = Number(b.slNo) || 0;
+      return sortOrder === 'asc' ? aSlNo - bSlNo : bSlNo - aSlNo;
+    });
+  }, [filteredRecords, sortOrder]);
+
   const totals = useMemo(() => {
-    return salesRecords.reduce(
+    return filteredRecords.reduce(
       (acc, record) => {
         acc.quantity += Number(record.quantity) || 0;
         acc.revenue += Number(record.revenue) || 0;
         acc.agentCommission += Number(record.agentCommission) || 0;
+        acc.volumeSold += Number(record.volumeSold) || 0;
         return acc;
       },
-      { quantity: 0, revenue: 0, agentCommission: 0 }
+      { quantity: 0, revenue: 0, agentCommission: 0, volumeSold: 0 }
     );
-  }, [salesRecords]);
+  }, [filteredRecords]);
 
   const handleEdit = (recordId) => {
     const record = salesRecords.find(r => r.id === recordId);
@@ -128,6 +189,204 @@ const DailySalesSummary = () => {
         </button>
       </div>
 
+      {/* Date Filter */}
+      <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
+        <label style={{ display: 'block', marginBottom: '12px', fontWeight: 'bold', color: '#333', fontSize: '16px' }}>Filter By:</label>
+
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setFilterType('today')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              backgroundColor: filterType === 'today' ? '#007bff' : '#e9ecef',
+              color: filterType === 'today' ? '#fff' : '#333',
+            }}
+          >
+            Today
+          </button>
+
+          <button
+            onClick={() => setFilterType('week')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              backgroundColor: filterType === 'week' ? '#007bff' : '#e9ecef',
+              color: filterType === 'week' ? '#fff' : '#333',
+            }}
+          >
+            This Week
+          </button>
+
+          <button
+            onClick={() => setFilterType('month')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              backgroundColor: filterType === 'month' ? '#007bff' : '#e9ecef',
+              color: filterType === 'month' ? '#fff' : '#333',
+            }}
+          >
+            This Month
+          </button>
+
+          <button
+            onClick={() => setFilterType('date')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              backgroundColor: filterType === 'date' ? '#007bff' : '#e9ecef',
+              color: filterType === 'date' ? '#fff' : '#333',
+            }}
+          >
+            Specific Date
+          </button>
+
+          <button
+            onClick={() => setFilterType('range')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              backgroundColor: filterType === 'range' ? '#007bff' : '#e9ecef',
+              color: filterType === 'range' ? '#fff' : '#333',
+            }}
+          >
+            Date Range
+          </button>
+        </div>
+
+        {/* Filter input based on selected filter type */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {filterType === 'date' && (
+            <>
+              <label style={{ fontWeight: 'bold', color: '#555' }}>Date:</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'Calibri, sans-serif',                  width: '130px',                }}
+              />
+            </>
+          )}
+
+          {filterType === 'month' && (
+            <>
+              <label style={{ fontWeight: 'bold', color: '#555' }}>Month:</label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'Calibri, sans-serif',
+                  width: '110px',
+                }}
+              />
+            </>
+          )}
+
+          {filterType === 'week' && (
+            <>
+              <label style={{ fontWeight: 'bold', color: '#555' }}>Week starting:</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'Calibri, sans-serif',
+                  width: '130px',
+                }}
+              />
+            </>
+          )}
+
+          {filterType === 'range' && (
+            <>
+              <label style={{ fontWeight: 'bold', color: '#555' }}>From:</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'Calibri, sans-serif',
+                  width: '130px',
+                }}
+              />
+              <label style={{ fontWeight: 'bold', color: '#555' }}>To:</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontFamily: 'Calibri, sans-serif',
+                  width: '130px',
+                }}
+              />
+            </>
+          )}
+
+          <label style={{ fontWeight: 'bold', color: '#555', marginLeft: '20px' }}>Product:</label>
+          <select
+            value={selectedProduct}
+            onChange={(e) => setSelectedProduct(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '14px',
+              fontFamily: 'Calibri, sans-serif',
+              minWidth: '150px',
+            }}
+          >
+            <option value="">All Products</option>
+            {uniqueProducts.map((product, idx) => (
+              <option key={idx} value={product}>
+                {product}
+              </option>
+            ))}
+          </select>
+
+          <span style={{ color: '#666', fontSize: '14px', marginLeft: 'auto' }}>
+            Showing <strong>{filteredRecords.length}</strong> record{filteredRecords.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
           Loading sales records...
@@ -137,7 +396,18 @@ const DailySalesSummary = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
             <thead>
               <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
-                <th style={thStyle}>SL No</th>
+                <th 
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  style={{
+                    ...thStyle,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    backgroundColor: '#1a252f',
+                  }}
+                  title="Click to sort by Serial Number"
+                >
+                  SL No {sortOrder === 'asc' ? '↑' : '↓'}
+                </th>
                 <th style={thStyle}>Sale Date</th>
                 <th style={thStyle}>Salesman</th>
                 <th style={thStyle}>Customer Name</th>
@@ -147,20 +417,21 @@ const DailySalesSummary = () => {
                 <th style={thStyle}>Product</th>
                 <th style={thStyle}>Qty</th>
                 <th style={thStyle}>Rate</th>
+                <th style={thStyle}>Volume Sold</th>
                 <th style={thStyle}>Revenue</th>
                 <th style={thStyle}>Agent Commission</th>
                 <th style={thStyle}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {salesRecords.length === 0 ? (
+              {sortedRecords.length === 0 ? (
                 <tr>
                   <td colSpan="13" style={{ ...tdStyle, textAlign: 'center', padding: '40px' }}>
                     No sales records found.
                   </td>
                 </tr>
               ) : (
-                salesRecords.map((record, index) => (
+                sortedRecords.map((record, index) => (
                   <tr key={record.id || index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f7f9fc' }}>
                     <td style={tdStyle}>{record.slNo}</td>
                     <td style={tdStyle}>{record.saleDate}</td>
@@ -172,6 +443,7 @@ const DailySalesSummary = () => {
                     <td style={tdStyle}>{record.productCode}</td>
                     <td style={tdStyle}>{record.quantity}</td>
                     <td style={tdStyle}>{record.rate}</td>
+                    <td style={tdStyle}>{record.volumeSold ?? ''}</td>
                     <td style={tdStyle}>{record.revenue}</td>
                     <td style={tdStyle}>{record.agentCommission || 0}</td>
                     <td style={tdStyle}>
@@ -211,19 +483,37 @@ const DailySalesSummary = () => {
                 ))
               )}
             </tbody>
-            {salesRecords.length > 0 && (
+            {filteredRecords.length > 0 && (
               <tfoot>
                 <tr style={{ backgroundColor: '#2c3e50', color: '#fff', fontWeight: 'bold' }}>
-                  <td colSpan="10" style={{ ...tdStyle, textAlign: 'right', padding: '10px 8px', border: '1px solid #d0d0d0' }}>
-                    Total:
-                  </td>
-                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
-                    {totals.revenue.toFixed(2)}
-                  </td>
-                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
-                    {totals.agentCommission.toFixed(2)}
-                  </td>
-                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}></td>
+                  {/* SL No */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Sale Date */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Salesman */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Customer Name */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Type */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Village */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Mobile */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Product */}
+                  <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
+                  {/* Quantity */}
+                  <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.quantity}</td>
+                  {/* Rate (no total) */}
+                  <td style={{ ...tdStyle }}></td>
+                  {/* Volume Sold */}
+                  <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.volumeSold}</td>
+                  {/* Revenue */}
+                  <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.revenue.toFixed(2)}</td>
+                  {/* Agent Commission */}
+                  <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.agentCommission.toFixed(2)}</td>
+                  {/* Actions */}
+                  <td style={{ ...tdStyle }}></td>
                 </tr>
               </tfoot>
             )}

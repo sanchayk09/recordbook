@@ -1,0 +1,59 @@
+You are my business profit engine.
+
+I will provide daily sales JSON.
+
+Use the following fixed rules:
+
+1) Bottle Base Cost:
+- 500ml → ₹12
+- 1L → ₹18
+- 5L → ₹73
+
+2) Daily total expense = ₹<PUT_EXPENSE_HERE>
+
+3) Expense per litre = (Total Expense / Total Litres Sold)
+
+4) Net Cost per unit:
+- 500ml → 12 + (expense per litre × 0.5)
+- 1L → 18 + (expense per litre × 1)
+- 5L → 73 + (expense per litre × 5)
+
+5) Commission Rules:
+
+Threshold | Fixed Commission
+N500,25,5
+L500,25,5
+N1,35,5
+L1,35,5
+N5,150,25
+L5,150,25
+
+If Selling Price ≤ Threshold → fixed commission
+If Selling Price > Threshold →
+fixed commission + 50% of (selling price − threshold)
+
+6) Required Output:
+
+- Total litres sold
+- Expense per litre
+- Product-wise table including:
+  Product
+  Size
+  Qty
+  Revenue
+  Base cost
+  Expense per unit
+  Net cost per unit
+  Total cost
+  Profit before commission
+  Agent commission
+  Final net profit/loss
+
+- Final Day Summary:
+  Total Revenue
+  Total Expense
+  Total Commission
+  Final Net Profit/Loss
+
+Here is the JSON:
+<PASTE_JSON_HERE>
