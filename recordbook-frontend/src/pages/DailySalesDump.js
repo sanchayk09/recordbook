@@ -183,7 +183,7 @@ const DailySalesDump = () => {
             type="button"
             onClick={handleParseJson}
             style={{
-              backgroundColor: '#2c3e50',
+              backgroundColor: '#66a37f',
               color: '#fff',
               border: 'none',
               padding: '8px 14px',
@@ -236,7 +236,7 @@ const DailySalesDump = () => {
       <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
           <thead>
-            <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+            <tr style={{ backgroundColor: '#66a37f', color: '#fff' }}>
               <th style={thStyle}>SL No</th>
               <th style={thStyle}>Sale Date</th>
               <th style={thStyle}>Salesman</th>
@@ -383,7 +383,7 @@ const DailySalesDump = () => {
                 type="button"
                 onClick={() => setExpenseEntries([...expenseEntries, { category: '', amount: '' }])}
                 style={{
-                  backgroundColor: '#2c3e50',
+                  backgroundColor: '#66a37f',
                   color: '#fff',
                   border: 'none',
                   padding: '8px 14px',

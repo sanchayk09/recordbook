@@ -28,16 +28,12 @@ public class DailySummaryService {
      * Submit/Create daily summary
      * Calculates totalRevenue and totalAgentCommission from daily_sale_record
      * Then calculates net_profit
+     * If summary already exists for this date, it will UPDATE it instead of creating new
      */
     @Transactional
     public DailySummaryResponse submitDailySummary(DailySummaryRequest request) {
         if (request == null || request.salesmanAlias == null || request.saleDate == null) {
             throw new RuntimeException("Salesman alias and sale date are required");
-        }
-
-        // Check if summary already exists
-        if (dailySummaryRepository.existsBySalesmanAliasAndSaleDate(request.salesmanAlias, request.saleDate)) {
-            throw new RuntimeException("Summary already exists for " + request.salesmanAlias + " on " + request.saleDate);
         }
 
         // Calculate totals from daily_sale_record
@@ -46,17 +42,31 @@ public class DailySummaryService {
                 request.saleDate
         );
 
-        // Create DailySummary entity
-        DailySummary summary = new DailySummary(
-                request.salesmanAlias,
-                request.saleDate,
-                calculation.getTotalRevenue(),
-                calculation.getTotalAgentCommission(),
-                request.totalExpense != null ? request.totalExpense : BigDecimal.ZERO,
-                request.materialCost != null ? request.materialCost : BigDecimal.ZERO
-        );
+        // Check if summary already exists for this date (sale_date is unique)
+        List<DailySummary> existingSummaries = dailySummaryRepository.findBySaleDate(request.saleDate);
+        DailySummary summary = existingSummaries.isEmpty() ? null : existingSummaries.get(0);
 
-        // Save to database
+        if (summary != null) {
+            // UPDATE existing record - update all fields
+            summary.setSalesmanAlias(request.salesmanAlias);
+            summary.setTotalRevenue(calculation.getTotalRevenue());
+            summary.setTotalAgentCommission(calculation.getTotalAgentCommission());
+            summary.setTotalExpense(request.totalExpense != null ? request.totalExpense : BigDecimal.ZERO);
+            summary.setMaterialCost(request.materialCost != null ? request.materialCost : BigDecimal.ZERO);
+            // netProfit will be recalculated in @PreUpdate
+        } else {
+            // CREATE new record
+            summary = new DailySummary(
+                    request.salesmanAlias,
+                    request.saleDate,
+                    calculation.getTotalRevenue(),
+                    calculation.getTotalAgentCommission(),
+                    request.totalExpense != null ? request.totalExpense : BigDecimal.ZERO,
+                    request.materialCost != null ? request.materialCost : BigDecimal.ZERO
+            );
+        }
+
+        // Save to database (insert or update)
         DailySummary saved = dailySummaryRepository.save(summary);
         return new DailySummaryResponse(saved);
     }

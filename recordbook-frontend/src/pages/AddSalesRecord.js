@@ -332,7 +332,7 @@ const AddSalesRecord = ({ onBack }) => {
             onClick={handleParseSalesJson}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#007bff',
+              backgroundColor: '#16a34a',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -416,7 +416,7 @@ const AddSalesRecord = ({ onBack }) => {
             onClick={() => setSalesStep('route-select')}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#007bff',
+              backgroundColor: '#16a34a',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -545,7 +545,7 @@ const AddSalesRecord = ({ onBack }) => {
             disabled={!selectedRoute}
             style={{
               padding: '8px 16px',
-              backgroundColor: selectedRoute ? '#007bff' : '#ccc',
+              backgroundColor: selectedRoute ? '#16a34a' : '#ccc',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -673,7 +673,7 @@ const AddSalesRecord = ({ onBack }) => {
             onClick={() => setSalesStep('salesman-select')}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#007bff',
+              backgroundColor: '#16a34a',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -844,7 +844,7 @@ const AddSalesRecord = ({ onBack }) => {
             disabled={!selectedSalesman}
             style={{
               padding: '8px 16px',
-              backgroundColor: selectedSalesman ? '#007bff' : '#ccc',
+              backgroundColor: selectedSalesman ? '#16a34a' : '#ccc',
               color: 'white',
               border: 'none',
               borderRadius: '4px',

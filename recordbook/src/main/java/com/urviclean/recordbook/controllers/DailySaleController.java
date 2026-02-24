@@ -222,7 +222,7 @@ public class DailySaleController {
     @GetMapping("/summary/product-sales")
     public List<ProductSalesDTO> getProductSalesSummary() {
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCode();
-        return productCostService.enrichWithCosts(results);
+        return productCostService.enrichWithCostsAndCommissionAllTime(results);
     }
 
     // 9. Get quantity sold by product code for specific date: /api/sales/summary/product-sales/date?date=2025-02-23
@@ -230,14 +230,15 @@ public class DailySaleController {
     public List<ProductSalesDTO> getProductSalesSummaryByDate(@RequestParam String date) {
         LocalDate localDate = LocalDate.parse(date);
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(localDate);
-        return productCostService.enrichWithCosts(results);
+        return productCostService.enrichWithCostsAndCommission(results, localDate);
     }
 
     // 10. Get quantity sold by product code for today: /api/sales/summary/product-sales/today
     @GetMapping("/summary/product-sales/today")
     public List<ProductSalesDTO> getProductSalesSummaryToday() {
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(LocalDate.now());
-        return productCostService.enrichWithCosts(results);
+        LocalDate today = LocalDate.now();
+        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(today);
+        return productCostService.enrichWithCostsAndCommission(results, today);
     }
 
     // 11. Get quantity sold by product code for date range: /api/sales/summary/product-sales/range?startDate=2025-02-01&endDate=2025-02-23
@@ -248,7 +249,7 @@ public class DailySaleController {
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(start, end);
-        return productCostService.enrichWithCosts(results);
+        return productCostService.enrichWithCostsAndCommissionForDateRange(results, start, end);
     }
 
     // 12. Get quantity sold by product code for specific month: /api/sales/summary/product-sales/month?year=2025&month=2
@@ -257,7 +258,7 @@ public class DailySaleController {
             @RequestParam int year,
             @RequestParam int month) {
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(year, month);
-        return productCostService.enrichWithCosts(results);
+        return productCostService.enrichWithCostsAndCommissionByMonth(results, year, month);
     }
 
     // 13. Get quantity sold by product code for current month: /api/sales/summary/product-sales/current-month
@@ -265,7 +266,7 @@ public class DailySaleController {
     public List<ProductSalesDTO> getProductSalesSummaryCurrentMonth() {
         LocalDate today = LocalDate.now();
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(today.getYear(), today.getMonthValue());
-        return productCostService.enrichWithCosts(results);
+        return productCostService.enrichWithCostsAndCommissionByMonth(results, today.getYear(), today.getMonthValue());
     }
 
     // POST with request body for alias + expenses + daily sales

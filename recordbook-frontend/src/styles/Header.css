@@ -10,7 +10,7 @@
   font-size: 24px;
 }
 .brand strong {
-  color: #15803d;
+  color: #66a37f;
 }
 .brand span {
   color: #64748b;
@@ -52,7 +52,7 @@
   .dropdown-item {
     display: block;
     padding: 10px 20px;
-    color: #15803d;
+    color: #66a37f;
     text-decoration: none;
     border-bottom: 1px solid #e2e8f0;
   }
@@ -71,5 +71,5 @@
   font-weight: bold;
 }
 .nav-button.admin {
-  background-color: #15803d;
+  background-color: #66a37f;
 }

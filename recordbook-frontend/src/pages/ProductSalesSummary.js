@@ -130,7 +130,7 @@ const ProductSalesSummary = () => {
           type="button"
           onClick={() => navigate('/daily-sales')}
           style={{
-            backgroundColor: '#2c3e50',
+            backgroundColor: '#66a37f',
             color: '#fff',
             border: 'none',
             padding: '10px 16px',
@@ -154,7 +154,7 @@ const ProductSalesSummary = () => {
               cursor: 'pointer',
               fontWeight: 'bold',
               fontSize: '12px',
-              backgroundColor: filterType === 'today' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'today' ? '#16a34a' : '#e9ecef',
               color: filterType === 'today' ? '#fff' : '#333',
             }}
           >
@@ -170,7 +170,7 @@ const ProductSalesSummary = () => {
               cursor: 'pointer',
               fontWeight: 'bold',
               fontSize: '12px',
-              backgroundColor: filterType === 'month' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'month' ? '#16a34a' : '#e9ecef',
               color: filterType === 'month' ? '#fff' : '#333',
             }}
           >
@@ -186,7 +186,7 @@ const ProductSalesSummary = () => {
               cursor: 'pointer',
               fontWeight: 'bold',
               fontSize: '12px',
-              backgroundColor: filterType === 'date' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'date' ? '#16a34a' : '#e9ecef',
               color: filterType === 'date' ? '#fff' : '#333',
             }}
           >
@@ -202,7 +202,7 @@ const ProductSalesSummary = () => {
               cursor: 'pointer',
               fontWeight: 'bold',
               fontSize: '12px',
-              backgroundColor: filterType === 'range' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'range' ? '#16a34a' : '#e9ecef',
               color: filterType === 'range' ? '#fff' : '#333',
             }}
           >
@@ -218,7 +218,7 @@ const ProductSalesSummary = () => {
               cursor: 'pointer',
               fontWeight: 'bold',
               fontSize: '12px',
-              backgroundColor: filterType === 'all-time' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'all-time' ? '#16a34a' : '#e9ecef',
               color: filterType === 'all-time' ? '#fff' : '#333',
             }}
           >
@@ -309,18 +309,26 @@ const ProductSalesSummary = () => {
         <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
             <thead>
-              <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+              <tr style={{ backgroundColor: '#66a37f', color: '#fff' }}>
                 <th style={thStyle}>Rank</th>
                 <th style={thStyle}>Product Code</th>
-                <th style={thStyle}>Total Quantity Sold</th>
-                <th style={thStyle}>Cost per Unit</th>
-                <th style={thStyle}>Total Cost</th>
+                <th style={thStyle}>Total Quantity</th>
+                <th style={thStyle}>Total Revenue</th>
+                <th style={thStyle}>Avg Revenue</th>
+                <th style={thStyle}>Cost/Unit</th>
+                <th style={thStyle}>Total material cost</th>
+                <th style={thStyle}>Profit without op cost</th>
+                <th style={thStyle}>Avg Profit</th>
+                <th style={thStyle}>Op Cost</th>
+                <th style={thStyle}>Salesman Comm</th>
+                <th style={thStyle}>Net Profit</th>
+                <th style={thStyle}>Avg Net Profit</th>
               </tr>
             </thead>
             <tbody>
               {productSales.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ ...tdStyle, textAlign: 'center', padding: '40px' }}>
+                  <td colSpan="9" style={{ ...tdStyle, textAlign: 'center', padding: '40px' }}>
                     No product sales data found.
                   </td>
                 </tr>
@@ -330,25 +338,51 @@ const ProductSalesSummary = () => {
                     <td style={tdStyle}>{index + 1}</td>
                     <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 'bold' }}>{record.productCode}</td>
                     <td style={tdStyle}>{record.totalQuantity}</td>
+                    <td style={tdStyle}>{record.totalRevenue !== undefined ? Number(record.totalRevenue).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.averageRevenue !== undefined ? Number(record.averageRevenue).toFixed(2) : '-'}</td>
                     <td style={tdStyle}>{record.productCost !== undefined ? Number(record.productCost).toFixed(2) : '-'}</td>
                     <td style={tdStyle}>{record.totalCost !== undefined ? Number(record.totalCost).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.totalProfit !== undefined ? Number(record.totalProfit).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.avgProfit !== undefined ? Number(record.avgProfit).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.opCost !== undefined ? Number(record.opCost).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.salesmanCommission !== undefined ? Number(record.salesmanCommission).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.netProfit !== undefined ? Number(record.netProfit).toFixed(2) : '-'}</td>
+                    <td style={tdStyle}>{record.avgNetProfit !== undefined ? Number(record.avgNetProfit).toFixed(2) : '-'}</td>
                   </tr>
                 ))
               )}
             </tbody>
             {productSales.length > 0 && (
               <tfoot>
-                <tr style={{ backgroundColor: '#2c3e50', color: '#fff', fontWeight: 'bold' }}>
+                <tr style={{ backgroundColor: '#66a37f', color: '#fff', fontWeight: 'bold' }}>
                   <td colSpan="2" style={{ ...tdStyle, textAlign: 'right', padding: '10px 8px', border: '1px solid #d0d0d0' }}>
                     Total:
                   </td>
                   <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
-                    {totals.totalQuantity}
+                    {productSales.reduce((acc, rec) => acc + (Number(rec.totalQuantity) || 0), 0)}
                   </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
+                    {productSales.reduce((acc, rec) => acc + (Number(rec.totalRevenue) || 0), 0).toFixed(2)}
+                  </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}></td>
                   <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}></td>
                   <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
                     {productSales.reduce((acc, rec) => acc + (Number(rec.totalCost) || 0), 0).toFixed(2)}
                   </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
+                    {productSales.reduce((acc, rec) => acc + (Number(rec.totalProfit) || 0), 0).toFixed(2)}
+                  </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}></td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
+                    {productSales.reduce((acc, rec) => acc + (Number(rec.opCost) || 0), 0).toFixed(2)}
+                  </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
+                    {productSales.reduce((acc, rec) => acc + (Number(rec.salesmanCommission) || 0), 0).toFixed(2)}
+                  </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}>
+                    {productSales.reduce((acc, rec) => acc + (Number(rec.netProfit) || 0), 0).toFixed(2)}
+                  </td>
+                  <td style={{ ...tdStyle, padding: '10px 8px', border: '1px solid #d0d0d0' }}></td>
                 </tr>
               </tfoot>
             )}
@@ -367,7 +401,7 @@ const ProductSalesSummary = () => {
         <label style={{ fontWeight: 'bold' }}>Date:</label>
         <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 120 }} />
         <button onClick={() => setExpenseDate(getTodayDate())} style={{ padding: '8px 16px', borderRadius: 4, background: '#6c757d', color: '#fff', border: 'none', fontWeight: 'bold' }}>Today</button>
-        <button onClick={fetchExpenseDetail} style={{ padding: '8px 16px', borderRadius: 4, background: '#007bff', color: '#fff', border: 'none', fontWeight: 'bold' }}>Show Expense</button>
+        <button onClick={fetchExpenseDetail} style={{ padding: '8px 16px', borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', fontWeight: 'bold' }}>Show Expense</button>
       </div>
       {expenseLoading ? (
         <div>Loading expense...</div>
@@ -375,7 +409,7 @@ const ProductSalesSummary = () => {
         <div style={{ marginTop: 10 }}>
           <table style={{ width: 400, borderCollapse: 'collapse', border: '1px solid #e0e0e0', borderRadius: 8 }}>
             <thead>
-              <tr style={{ background: '#2c3e50', color: '#fff' }}>
+              <tr style={{ background: '#66a37f', color: '#fff' }}>
                 <th style={thStyle}>Salesman</th>
                 <th style={thStyle}>Date</th>
                 <th style={thStyle}>Total Expense</th>

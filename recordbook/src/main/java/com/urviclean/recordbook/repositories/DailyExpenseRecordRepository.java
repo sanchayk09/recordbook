@@ -47,5 +47,17 @@ public interface DailyExpenseRecordRepository extends JpaRepository<DailyExpense
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+
+    /**
+     * Get total expense sum for a specific date
+     */
+    @Query("SELECT SUM(d.totalExpense) FROM DailyExpenseRecord d WHERE d.expenseDate = :expenseDate")
+    java.math.BigDecimal getTotalExpenseByDate(@Param("expenseDate") LocalDate expenseDate);
+
+    /**
+     * Get total expense sum for a date range
+     */
+    @Query("SELECT SUM(d.totalExpense) FROM DailyExpenseRecord d WHERE d.expenseDate BETWEEN :startDate AND :endDate")
+    java.math.BigDecimal getTotalExpenseByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }
 

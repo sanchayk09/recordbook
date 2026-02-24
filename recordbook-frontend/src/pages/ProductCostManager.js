@@ -187,7 +187,7 @@ const ProductCostManager = () => {
           required
           style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 80 }}
         />
-        <button type="submit" style={{ padding: '8px 16px', borderRadius: 4, background: '#007bff', color: '#fff', border: 'none', fontWeight: 'bold' }}>Add</button>
+        <button type="submit" style={{ padding: '8px 16px', borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', fontWeight: 'bold' }}>Add</button>
       </form>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -226,7 +226,7 @@ const ProductCostManager = () => {
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
           <thead>
-            <tr style={{ background: '#2c3e50', color: '#fff' }}>
+            <tr style={{ background: '#66a37f', color: '#fff' }}>
               <th style={thStyle}>PID</th>
               <th style={thStyle}>Product Name</th>
               <th style={thStyle}>Product Code</th>
@@ -274,7 +274,7 @@ const ProductCostManager = () => {
                       </>
                     ) : (
                       <>
-                        <button onClick={() => startEdit(row)} style={{ background: '#007bff', color: '#fff', border: 'none', borderRadius: 3, padding: '4px 10px', cursor: 'pointer', fontWeight: 'bold', marginRight: 4 }}>Edit</button>
+                        <button onClick={() => startEdit(row)} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 3, padding: '4px 10px', cursor: 'pointer', fontWeight: 'bold', marginRight: 4 }}>Edit</button>
                         <button onClick={() => handleDelete(row.pid)} style={{ background: '#dc3545', color: '#fff', border: 'none', borderRadius: 3, padding: '4px 10px', cursor: 'pointer', fontWeight: 'bold' }}>Delete</button>
                       </>
                     )}
@@ -296,14 +296,14 @@ const ProductCostManager = () => {
         </select>
         <label style={{ fontWeight: 'bold' }}>Date:</label>
         <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 120 }} />
-        <button onClick={fetchExpenseDetail} style={{ padding: '8px 16px', borderRadius: 4, background: '#007bff', color: '#fff', border: 'none', fontWeight: 'bold' }}>Show Expense</button>
+        <button onClick={fetchExpenseDetail} style={{ padding: '8px 16px', borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', fontWeight: 'bold' }}>Show Expense</button>
       </div>
       {expenseLoading ? (
         <div>Loading expense...</div>
       ) : expenseDetail ? (
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
           <thead>
-            <tr style={{ background: '#2c3e50', color: '#fff' }}>
+            <tr style={{ background: '#66a37f', color: '#fff' }}>
               <th style={thStyle}>Salesman</th>
               <th style={thStyle}>Date</th>
               <th style={thStyle}>Total Expense</th>

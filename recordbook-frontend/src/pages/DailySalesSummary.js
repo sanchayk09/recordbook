@@ -177,7 +177,7 @@ const DailySalesSummary = () => {
           type="button"
           onClick={() => navigate('/daily-sales')}
           style={{
-            backgroundColor: '#2c3e50',
+            backgroundColor: '#66a37f',
             color: '#fff',
             border: 'none',
             padding: '10px 16px',
@@ -202,7 +202,7 @@ const DailySalesSummary = () => {
               border: 'none',
               cursor: 'pointer',
               fontWeight: 'bold',
-              backgroundColor: filterType === 'today' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'today' ? '#16a34a' : '#e9ecef',
               color: filterType === 'today' ? '#fff' : '#333',
             }}
           >
@@ -217,7 +217,7 @@ const DailySalesSummary = () => {
               border: 'none',
               cursor: 'pointer',
               fontWeight: 'bold',
-              backgroundColor: filterType === 'week' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'week' ? '#16a34a' : '#e9ecef',
               color: filterType === 'week' ? '#fff' : '#333',
             }}
           >
@@ -232,7 +232,7 @@ const DailySalesSummary = () => {
               border: 'none',
               cursor: 'pointer',
               fontWeight: 'bold',
-              backgroundColor: filterType === 'month' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'month' ? '#16a34a' : '#e9ecef',
               color: filterType === 'month' ? '#fff' : '#333',
             }}
           >
@@ -247,7 +247,7 @@ const DailySalesSummary = () => {
               border: 'none',
               cursor: 'pointer',
               fontWeight: 'bold',
-              backgroundColor: filterType === 'date' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'date' ? '#16a34a' : '#e9ecef',
               color: filterType === 'date' ? '#fff' : '#333',
             }}
           >
@@ -262,7 +262,7 @@ const DailySalesSummary = () => {
               border: 'none',
               cursor: 'pointer',
               fontWeight: 'bold',
-              backgroundColor: filterType === 'range' ? '#007bff' : '#e9ecef',
+              backgroundColor: filterType === 'range' ? '#16a34a' : '#e9ecef',
               color: filterType === 'range' ? '#fff' : '#333',
             }}
           >
@@ -395,14 +395,14 @@ const DailySalesSummary = () => {
         <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1200px' }}>
             <thead>
-              <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+              <tr style={{ backgroundColor: '#66a37f', color: '#fff' }}>
                 <th 
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                   style={{
                     ...thStyle,
                     cursor: 'pointer',
                     userSelect: 'none',
-                    backgroundColor: '#1a252f',
+                    backgroundColor: '#0d5a1f',
                   }}
                   title="Click to sort by Serial Number"
                 >
@@ -450,7 +450,7 @@ const DailySalesSummary = () => {
                       <button
                         onClick={() => handleEdit(record.id)}
                         style={{
-                          backgroundColor: '#007bff',
+                          backgroundColor: '#16a34a',
                           color: '#fff',
                           border: 'none',
                           padding: '4px 8px',
@@ -485,7 +485,7 @@ const DailySalesSummary = () => {
             </tbody>
             {filteredRecords.length > 0 && (
               <tfoot>
-                <tr style={{ backgroundColor: '#2c3e50', color: '#fff', fontWeight: 'bold' }}>
+                <tr style={{ backgroundColor: '#66a37f', color: '#fff', fontWeight: 'bold' }}>
                   {/* SL No */}
                   <td style={{ ...tdStyle }}></td>
                   {/* Sale Date */}
