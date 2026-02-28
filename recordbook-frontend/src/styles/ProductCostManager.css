@@ -1,0 +1,305 @@
+/* Product Cost Manager Page Styles */
+
+.pcm-page {
+  padding: 30px;
+  font-family: Calibri, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.pcm-page h2 {
+  margin-bottom: 20px;
+}
+
+.pcm-page h3 {
+  margin-top: 20px;
+  margin-bottom: 15px;
+}
+
+/* Add Product Form */
+.pcm-add-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pcm-input {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-family: Calibri, sans-serif;
+  font-size: 14px;
+}
+
+.pcm-input-short {
+  min-width: 80px;
+}
+
+.pcm-input-medium {
+  min-width: 120px;
+}
+
+.pcm-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: Calibri, sans-serif;
+  font-size: 14px;
+}
+
+.pcm-button-add {
+  background-color: #16a34a;
+  color: #fff;
+}
+
+.pcm-button-add:hover {
+  background-color: #15803d;
+}
+
+.pcm-button-check {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.pcm-button-check:hover {
+  background-color: #218838;
+}
+
+.pcm-button-search {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+.pcm-button-search:hover {
+  background-color: #5a6268;
+}
+
+.pcm-button-show-all {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.pcm-button-show-all:hover {
+  background-color: #e0a800;
+}
+
+/* Search and Filter Section */
+.pcm-search-section {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pcm-code-check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pcm-code-status {
+  font-weight: bold;
+}
+
+.pcm-code-status.exists {
+  color: red;
+}
+
+.pcm-code-status.available {
+  color: green;
+}
+
+/* Table Styles */
+.pcm-table-container {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.pcm-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.pcm-table thead {
+  background-color: #66a37f;
+  color: #fff;
+}
+
+.pcm-table th {
+  padding: 8px;
+  border: 1px solid #d0d0d0;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pcm-table td {
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.pcm-table tbody tr {
+  background-color: #fff;
+}
+
+.pcm-table tbody tr:nth-child(even) {
+  background-color: #f7f9fc;
+}
+
+.pcm-table tbody tr:hover {
+  background-color: #fffacd;
+}
+
+.pcm-table .empty-row {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+/* Edit and Delete Buttons */
+.pcm-table-action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.pcm-button-edit {
+  background-color: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.pcm-button-edit:hover {
+  background-color: #15803d;
+}
+
+.pcm-button-save {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.pcm-button-save:hover {
+  background-color: #218838;
+}
+
+.pcm-button-cancel {
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.pcm-button-cancel:hover {
+  background-color: #5a6268;
+}
+
+.pcm-button-delete {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.pcm-button-delete:hover {
+  background-color: #c82333;
+}
+
+/* Edit Input Styles */
+.pcm-table input {
+  padding: 4px;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  font-family: Calibri, sans-serif;
+  font-size: 12px;
+}
+
+/* Expense Section */
+.pcm-expense-section {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+.pcm-expense-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.pcm-expense-label {
+  font-weight: bold;
+}
+
+.pcm-expense-select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 120px;
+  font-family: Calibri, sans-serif;
+}
+
+.pcm-expense-date {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 120px;
+  font-family: Calibri, sans-serif;
+}
+
+.pcm-expense-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  background-color: #16a34a;
+  color: #fff;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.pcm-expense-button:hover {
+  background-color: #15803d;
+}
+
+.pcm-expense-loading {
+  color: #666;
+  margin-top: 10px;
+}
+
+.pcm-expense-empty {
+  color: #888;
+  margin-top: 10px;
+}
+
+.pcm-hr {
+  margin: 40px 0 20px 0;
+  border: none;
+  border-top: 1px solid #ddd;
+}

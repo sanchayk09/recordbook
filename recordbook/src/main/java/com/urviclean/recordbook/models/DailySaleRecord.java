@@ -169,5 +169,4 @@ public class DailySaleRecord {
         this.volumeSold = volumeSold;
     }
 
-
 }

@@ -1,0 +1,241 @@
+.pss-page {
+  padding: 30px;
+  font-family: Calibri, sans-serif;
+}
+
+.pss-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pss-title {
+  margin: 0;
+}
+
+.pss-back-btn {
+  background-color: #66a37f;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pss-filter-box {
+  margin-bottom: 8px;
+  padding: 6px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.pss-filter-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.pss-filter-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.pss-filter-btn.is-active {
+  background-color: #16a34a;
+  color: #fff;
+}
+
+.pss-filter-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pss-date-input,
+.pss-month-input {
+  padding: 4px 8px;
+  width: 130px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: Calibri, sans-serif;
+}
+
+.pss-month-input {
+  width: 110px;
+}
+
+.pss-total-text {
+  color: #666;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.pss-loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.pss-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.pss-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.pss-thead-row {
+  background-color: #66a37f;
+  color: #fff;
+}
+
+.pss-tfoot-row {
+  background-color: #66a37f;
+  color: #fff;
+  font-weight: bold;
+}
+
+.pss-td,
+.pss-th {
+  padding: 8px;
+  border: 1px solid #d0d0d0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pss-td-left {
+  text-align: left;
+  font-weight: bold;
+}
+
+.pss-td-center {
+  text-align: center;
+}
+
+.pss-td-right {
+  text-align: right;
+}
+
+.pss-table tbody tr:nth-child(even) {
+  background-color: #f7f9fc;
+}
+
+.pss-table tbody tr:nth-child(odd) {
+  background-color: #fff;
+}
+
+.pss-chart-row {
+  margin-top: 25px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.pss-chart-card {
+  flex: 0 0 calc(33.333% - 10px);
+  background-color: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.pss-chart-title {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pss-page .recharts-legend-wrapper {
+  font-size: 11px;
+}
+
+.pss-divider {
+  margin: 40px 0 20px 0;
+}
+
+.pss-expense-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.pss-label {
+  font-weight: bold;
+}
+
+.pss-select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 120px;
+}
+
+.pss-expense-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  color: #fff;
+}
+
+.pss-expense-btn.secondary {
+  background: #6c757d;
+}
+
+.pss-expense-btn.primary {
+  background: #16a34a;
+}
+
+.pss-expense-table {
+  width: 400px;
+  border-collapse: collapse;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.pss-expense-table tbody tr {
+  background: #fff;
+}
+
+.pss-expense-block {
+  margin-top: 10px;
+}
+
+.pss-expense-head {
+  background: #66a37f;
+  color: #fff;
+}
+
+.pss-expense-empty {
+  color: #888;
+  margin-top: 10px;
+}
+
+.pss-submit-btn {
+  margin-top: 16px;
+  padding: 10px 24px;
+  border-radius: 4px;
+  background: #28a745;
+  color: #fff;
+  border: none;
+  font-weight: bold;
+  font-size: 16px;
+}

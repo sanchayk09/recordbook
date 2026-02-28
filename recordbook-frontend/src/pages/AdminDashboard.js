@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import { salesAPI } from '../api';
 import '../styles/AdminDashboard.css';
 import { notifySuccess, notifyError } from '../utils/toast';
 import { filterSales, sortSales } from '../utils/salesUtils';
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
         return;
       }
       setLoading(true);
-      const response = await api.get('/api/sales');
+      const response = await salesAPI.getAllSales();
       setAllSales(response.data);
       setSales(response.data);
       
@@ -195,11 +195,11 @@ const AdminDashboard = () => {
 
       if (editingId) {
         // Update existing record
-        await api.put(`/api/sales/${editingId}`, payload);
+        await salesAPI.updateSales(editingId, payload);
         notifySuccess('Record updated successfully!');
       } else {
         // Create new record
-        await api.post('/api/sales', payload);
+        await salesAPI.createSales(payload);
         notifySuccess('Record added successfully!');
       }
       
@@ -223,7 +223,7 @@ const AdminDashboard = () => {
     if (!deleteConfirm.id) return;
     try {
       setDeleteConfirm(prev => ({ ...prev, deleting: true }));
-      await api.delete(`/api/sales/${deleteConfirm.id}`);
+      await salesAPI.deleteSales(deleteConfirm.id);
       notifySuccess('Record deleted successfully!');
       setDeleteConfirm({ show: false, id: null, deleting: false });
       fetchSales();

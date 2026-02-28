@@ -31,30 +31,30 @@ public interface DailySaleRecordRepository extends JpaRepository<DailySaleRecord
     List<DailySaleRecord> findByYearAndWeek(@Param("year") int year, @Param("week") int week);
 
     // Product sales summary - Group by product_code
-    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue)) " +
+    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue), SUM(d.volumeSold)) " +
            "FROM DailySaleRecord d GROUP BY d.productCode ORDER BY SUM(d.quantity) DESC")
     List<ProductSalesDTO> getQuantitySoldByProductCode();
 
     // Product sales summary with date range
-    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue)) " +
+    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue), SUM(d.volumeSold)) " +
            "FROM DailySaleRecord d WHERE d.saleDate >= :startDate AND d.saleDate <= :endDate " +
            "GROUP BY d.productCode ORDER BY SUM(d.quantity) DESC")
     List<ProductSalesDTO> getQuantitySoldByProductCodeAndDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     // Product sales summary for specific date
-    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue)) " +
+    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue), SUM(d.volumeSold)) " +
            "FROM DailySaleRecord d WHERE d.saleDate = :saleDate " +
            "GROUP BY d.productCode ORDER BY SUM(d.quantity) DESC")
     List<ProductSalesDTO> getQuantitySoldByProductCodeAndDate(@Param("saleDate") LocalDate saleDate);
 
     // Product sales summary for specific month
-    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue)) " +
+    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue), SUM(d.volumeSold)) " +
            "FROM DailySaleRecord d WHERE YEAR(d.saleDate) = :year AND MONTH(d.saleDate) = :month " +
            "GROUP BY d.productCode ORDER BY SUM(d.quantity) DESC")
     List<ProductSalesDTO> getQuantitySoldByProductCodeAndMonth(@Param("year") int year, @Param("month") int month);
 
     // Get product sales with commission for specific date
-    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue)) " +
+    @Query("SELECT new com.urviclean.recordbook.models.ProductSalesDTO(d.productCode, SUM(d.quantity), SUM(d.revenue), SUM(d.volumeSold)) " +
            "FROM DailySaleRecord d WHERE d.saleDate = :saleDate " +
            "GROUP BY d.productCode ORDER BY SUM(d.quantity) DESC")
     List<ProductSalesDTO> getProductSalesWithCommissionByDate(@Param("saleDate") LocalDate saleDate);
@@ -83,7 +83,7 @@ public interface DailySaleRecordRepository extends JpaRepository<DailySaleRecord
     List<Object[]> getCommissionByProductAndMonth(@Param("year") int year, @Param("month") int month);
 
     // Calculate total revenue and total agent commission for daily summary
-    @Query("SELECT SUM(d.revenue) AS totalRevenue, SUM(d.agentCommission) AS totalCommission " +
+    @Query("SELECT SUM(d.revenue) AS totalRevenue, SUM(d.agentCommission) AS totalCommission, SUM(d.volumeSold) AS totalVolumeSold, SUM(d.quantity) AS totalQuantity " +
            "FROM DailySaleRecord d WHERE d.salesmanName = :salesmanAlias AND d.saleDate = :saleDate")
     List<Object[]> calculateSalesSummary(@Param("salesmanAlias") String salesmanAlias, @Param("saleDate") LocalDate saleDate);
 }

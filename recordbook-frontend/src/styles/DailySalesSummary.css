@@ -1,0 +1,181 @@
+/* Daily Sales Summary Page Styles */
+
+.dss-page {
+  padding: 30px;
+  font-family: Calibri, sans-serif;
+}
+
+.dss-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dss-header h2 {
+  margin: 0;
+}
+
+.dss-back-button {
+  background-color: #66a37f;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dss-back-button:hover {
+  background-color: #508566;
+}
+
+.dss-filter-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.dss-filter-label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: #333;
+  font-size: 16px;
+}
+
+.dss-filter-buttons-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.dss-filter-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.dss-filter-button.active {
+  background-color: #16a34a;
+  color: #fff;
+}
+
+.dss-filter-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dss-filter-input-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dss-filter-input-label {
+  font-weight: bold;
+  color: #555;
+}
+
+.dss-filter-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: Calibri, sans-serif;
+}
+
+.dss-filter-input.date-input {
+  width: 130px;
+}
+
+.dss-filter-input.month-input {
+  width: 110px;
+}
+
+.dss-filter-input.select-input {
+  min-width: 150px;
+}
+
+.dss-filter-total {
+  color: #666;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.dss-filter-total strong {
+  font-weight: bold;
+}
+
+.dss-loading {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+}
+
+.dss-table-container {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.dss-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+.dss-table thead tr {
+  background-color: #66a37f;
+  color: #fff;
+}
+
+.dss-table th {
+  padding: 10px;
+  border: 1px solid #d0d0d0;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dss-table th:hover {
+  background-color: #568872;
+}
+
+.dss-table tbody tr {
+  background-color: #fff;
+}
+
+.dss-table tbody tr:nth-child(even) {
+  background-color: #f7f9fc;
+}
+
+.dss-table td {
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.dss-table tbody tr:hover {
+  background-color: #fffacd;
+}
+
+.dss-table .text-left {
+  text-align: left;
+}
+
+.dss-total-row {
+  background-color: #eef2f7;
+  font-weight: bold;
+}

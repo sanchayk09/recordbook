@@ -12,6 +12,8 @@ public class DailySummaryResponse {
     private BigDecimal totalAgentCommission;
     private BigDecimal totalExpense;
     private BigDecimal materialCost;
+    private BigDecimal volumeSold;
+    private Long totalQuantity;
     private BigDecimal netProfit;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -27,6 +29,8 @@ public class DailySummaryResponse {
         this.totalAgentCommission = entity.getTotalAgentCommission();
         this.totalExpense = entity.getTotalExpense();
         this.materialCost = entity.getMaterialCost();
+        this.volumeSold = entity.getVolumeSold();
+        this.totalQuantity = entity.getTotalQuantity();
         this.netProfit = entity.getNetProfit();
         this.createdAt = entity.getCreatedAt();
         this.updatedAt = entity.getUpdatedAt();
@@ -88,6 +92,22 @@ public class DailySummaryResponse {
         this.materialCost = materialCost;
     }
 
+    public BigDecimal getVolumeSold() {
+        return volumeSold;
+    }
+
+    public void setVolumeSold(BigDecimal volumeSold) {
+        this.volumeSold = volumeSold;
+    }
+
+    public Long getTotalQuantity() {
+        return totalQuantity;
+    }
+
+    public void setTotalQuantity(Long totalQuantity) {
+        this.totalQuantity = totalQuantity;
+    }
+
     public BigDecimal getNetProfit() {
         return netProfit;
     }
@@ -122,6 +142,8 @@ public class DailySummaryResponse {
                 ", totalAgentCommission=" + totalAgentCommission +
                 ", totalExpense=" + totalExpense +
                 ", materialCost=" + materialCost +
+                ", volumeSold=" + volumeSold +
+                ", totalQuantity=" + totalQuantity +
                 ", netProfit=" + netProfit +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +

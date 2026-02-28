@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import { salesmanAPI, expenseAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
+import '../styles/DailySalesDump.css';
 
 const DailySalesDump = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const DailySalesDump = () => {
     const loadSalesmen = async () => {
       setLoadingSalesmen(true);
       try {
-        const response = await api.get('/api/v1/admin/salesmen/aliases');
+        const response = await salesmanAPI.getAliases();
         console.log('Salesmen API Response:', response.data);
         const salesmen = Array.isArray(response.data) ? response.data : [];
         console.log('Processed salesmen list:', salesmen);
@@ -106,7 +107,7 @@ const DailySalesDump = () => {
         dailySales: salesData
       };
 
-      await api.post('/api/sales/sales-expense', requestBody);
+      await expenseAPI.submitSalesWithExpense(requestBody);
 
       notifySuccess('Data saved successfully.');
       setShowExpenseModal(false);
@@ -131,11 +132,11 @@ const DailySalesDump = () => {
   }, [salesData]);
 
   return (
-    <div style={{ padding: '30px', fontFamily: 'Calibri, sanres-serif' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>Daily Sales Dump</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <label htmlFor="salesman" style={{ fontWeight: 'bold' }}>Salesman</label>
+    <div className="dsd-page">
+      <div className="dsd-header">
+        <h2>Daily Sales Dump</h2>
+        <div className="dsd-header-actions">
+          <label htmlFor="salesman" className="dsd-salesman-label">Salesman</label>
           <select
             id="salesman"
             value={selectedSalesman}
@@ -144,7 +145,7 @@ const DailySalesDump = () => {
               setSelectedSalesman(selectedName);
               setSalesmanId(selectedName); // Use alias as ID
             }}
-            style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #ccc', minWidth: '180px' }}
+            className="dsd-salesman-select"
             disabled={loadingSalesmen}
           >
             <option value="">{loadingSalesmen ? 'Loading...' : 'Select salesman'}</option>
@@ -157,8 +158,8 @@ const DailySalesDump = () => {
         </div>
       </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label htmlFor="sales-json" style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>
+      <div className="dsd-json-section">
+        <label htmlFor="sales-json" className="dsd-json-label">
           Paste JSON data
         </label>
         <textarea
@@ -169,47 +170,26 @@ const DailySalesDump = () => {
   {"slNo":1,"saleDate":"19/02/2026","customerName":"ABC Store","customerType":"S","village":"Gola","mobileNumber":"9000000000","quantity":1,"rate":40,"revenue":40,"productCode":"N1"}
 ]'
           rows={6}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            borderRadius: '8px',
-            border: '1px solid #ccc',
-            fontFamily: 'Consolas, monospace',
-            fontSize: '13px',
-          }}
+          className="dsd-json-textarea"
         />
-        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+        <div className="dsd-json-actions">
           <button
             type="button"
             onClick={handleParseJson}
-            style={{
-              backgroundColor: '#66a37f',
-              color: '#fff',
-              border: 'none',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
+            className="dsd-button dsd-parse-button"
           >
             Load JSON
           </button>
           <button
             type="button"
             onClick={() => { setJsonInput(''); setSalesData([]); setParseError(''); }}
-            style={{
-              backgroundColor: '#e0e0e0',
-              color: '#333',
-              border: 'none',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
+            className="dsd-button dsd-clear-button"
           >
             Clear
           </button>
         </div>
         {parseError && (
-          <div style={{ color: '#b00020', marginTop: '8px', fontWeight: 'bold' }}>
+          <div className="dsd-parse-error">
             {parseError}
           </div>
         )}

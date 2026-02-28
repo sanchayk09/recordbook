@@ -53,6 +53,8 @@ public class DailySummaryService {
             summary.setTotalAgentCommission(calculation.getTotalAgentCommission());
             summary.setTotalExpense(request.totalExpense != null ? request.totalExpense : BigDecimal.ZERO);
             summary.setMaterialCost(request.materialCost != null ? request.materialCost : BigDecimal.ZERO);
+            summary.setVolumeSold(calculation.getTotalVolumeSold());
+            summary.setTotalQuantity(calculation.getTotalQuantity());
             // netProfit will be recalculated in @PreUpdate
         } else {
             // CREATE new record
@@ -62,7 +64,9 @@ public class DailySummaryService {
                     calculation.getTotalRevenue(),
                     calculation.getTotalAgentCommission(),
                     request.totalExpense != null ? request.totalExpense : BigDecimal.ZERO,
-                    request.materialCost != null ? request.materialCost : BigDecimal.ZERO
+                    request.materialCost != null ? request.materialCost : BigDecimal.ZERO,
+                    calculation.getTotalVolumeSold(),
+                    calculation.getTotalQuantity()
             );
         }
 
@@ -74,23 +78,27 @@ public class DailySummaryService {
     /**
      * Calculate totals from daily_sale_record table
      * Groups by salesman_name and sale_date
-     * Sums: revenue and agent_commission
+     * Sums: revenue, agent_commission, volume_sold, and quantity
      */
     private DailySalesRecordCalculation calculateTotalsFromDailySales(String salesmanAlias, LocalDate saleDate) {
         List<Object[]> results = dailySaleRecordRepository.calculateSalesSummary(salesmanAlias, saleDate);
 
         if (results.isEmpty()) {
             // No sales found for this salesman on this date
-            return new DailySalesRecordCalculation(BigDecimal.ZERO, BigDecimal.ZERO);
+            return new DailySalesRecordCalculation(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L);
         }
 
         Object[] row = results.get(0);
         BigDecimal totalRevenue = (BigDecimal) row[0];
         BigDecimal totalCommission = (BigDecimal) row[1];
+        BigDecimal totalVolumeSold = (BigDecimal) row[2];
+        Long totalQuantity = (Long) row[3];
 
         return new DailySalesRecordCalculation(
                 totalRevenue != null ? totalRevenue : BigDecimal.ZERO,
-                totalCommission != null ? totalCommission : BigDecimal.ZERO
+                totalCommission != null ? totalCommission : BigDecimal.ZERO,
+                totalVolumeSold != null ? totalVolumeSold : BigDecimal.ZERO,
+                totalQuantity != null ? totalQuantity : 0L
         );
     }
 
@@ -166,6 +174,8 @@ public class DailySummaryService {
 
         summary.setTotalRevenue(calculation.getTotalRevenue());
         summary.setTotalAgentCommission(calculation.getTotalAgentCommission());
+        summary.setVolumeSold(calculation.getTotalVolumeSold());
+        summary.setTotalQuantity(calculation.getTotalQuantity());
         summary.setTotalExpense(request.totalExpense != null ? request.totalExpense : BigDecimal.ZERO);
         summary.setMaterialCost(request.materialCost != null ? request.materialCost : BigDecimal.ZERO);
 

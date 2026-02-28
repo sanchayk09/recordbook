@@ -32,6 +32,12 @@ public class DailySummary {
     @Column(name = "material_cost", nullable = false)
     private BigDecimal materialCost;
 
+    @Column(name = "volume_sold", precision = 12, scale = 2)
+    private BigDecimal volumeSold;
+
+    @Column(name = "total_quantity")
+    private Long totalQuantity;
+
     @Column(name = "net_profit")
     private BigDecimal netProfit;
 
@@ -75,13 +81,15 @@ public class DailySummary {
 
     public DailySummary(String salesmanAlias, LocalDate saleDate,
                         BigDecimal totalRevenue, BigDecimal totalAgentCommission,
-                        BigDecimal totalExpense, BigDecimal materialCost) {
+                        BigDecimal totalExpense, BigDecimal materialCost, BigDecimal volumeSold, Long totalQuantity) {
         this.salesmanAlias = salesmanAlias;
         this.saleDate = saleDate;
         this.totalRevenue = totalRevenue;
         this.totalAgentCommission = totalAgentCommission;
         this.totalExpense = totalExpense;
         this.materialCost = materialCost;
+        this.volumeSold = volumeSold;
+        this.totalQuantity = totalQuantity;
         calculateNetProfit();
     }
 
@@ -142,6 +150,22 @@ public class DailySummary {
         this.materialCost = materialCost;
     }
 
+    public BigDecimal getVolumeSold() {
+        return volumeSold;
+    }
+
+    public void setVolumeSold(BigDecimal volumeSold) {
+        this.volumeSold = volumeSold;
+    }
+
+    public Long getTotalQuantity() {
+        return totalQuantity;
+    }
+
+    public void setTotalQuantity(Long totalQuantity) {
+        this.totalQuantity = totalQuantity;
+    }
+
     public BigDecimal getNetProfit() {
         return netProfit;
     }
@@ -176,6 +200,8 @@ public class DailySummary {
                 ", totalAgentCommission=" + totalAgentCommission +
                 ", totalExpense=" + totalExpense +
                 ", materialCost=" + materialCost +
+                ", volumeSold=" + volumeSold +
+                ", totalQuantity=" + totalQuantity +
                 ", netProfit=" + netProfit +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +

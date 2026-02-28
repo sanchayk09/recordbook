@@ -1,0 +1,143 @@
+.dsr-page {
+  padding: 24px;
+}
+
+.dsr-header {
+  margin: 0 0 12px 0;
+}
+
+.dsr-controls {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dsr-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.dsr-filter-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.dsr-filter-btn {
+  padding: 6px 12px;
+  background-color: #e0e0e0;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.dsr-filter-btn.is-active {
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.dsr-date-input {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  width: 130px;
+}
+
+.dsr-action-btn {
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.dsr-profit-toggle {
+  padding: 6px 12px;
+  background-color: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.dsr-profit-toggle.is-active {
+  background-color: #ffa500;
+  color: #fff;
+}
+
+.dsr-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dsr-thead-row {
+  background: #f0f0f0;
+}
+
+.dsr-th,
+.dsr-td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
+
+.dsr-td {
+  font-size: 14px;
+}
+
+.dsr-center {
+  text-align: center;
+}
+
+.dsr-right {
+  text-align: right;
+}
+
+.dsr-tfoot-row {
+  background: #e8f5e9;
+  font-weight: bold;
+}
+
+.dsr-charts {
+  margin-top: 30px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+
+.dsr-chart-card {
+  flex: 1;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.dsr-chart-title {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.dsr-page .recharts-cartesian-axis-tick-value {
+  font-size: 10px;
+}
+
+.dsr-page .recharts-default-tooltip {
+  font-size: 11px;
+}
+
+.dsr-page .recharts-legend-wrapper {
+  font-size: 11px;
+}
+
+.dsr-empty {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+}

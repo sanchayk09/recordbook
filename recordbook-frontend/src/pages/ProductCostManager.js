@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api';
+import { productCostAPI, salesmanAPI, expenseAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
 import { getTodayDate } from '../utils/dateUtils';
+import '../styles/ProductCostManager.css';
 
 const ProductCostManager = () => {
   const [costs, setCosts] = useState([]);
@@ -27,7 +28,7 @@ const ProductCostManager = () => {
   const fetchCosts = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/product-cost/all');
+      const res = await productCostAPI.getAll();
       setCosts(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       notifyError('Failed to fetch product costs');
@@ -38,7 +39,7 @@ const ProductCostManager = () => {
 
   const fetchSalesmen = async () => {
     try {
-      const res = await api.get('/api/v1/admin/salesmen/aliases');
+      const res = await salesmanAPI.getAliases();
       setSalesmen(Array.isArray(res.data) ? res.data : []);
       if (res.data && res.data.length > 0) setSelectedSalesman(res.data[0]);
     } catch (e) {
@@ -53,7 +54,7 @@ const ProductCostManager = () => {
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/product-cost/add', {
+      await productCostAPI.add({
         productName: form.productName,
         productCode: form.productCode,
         cost: form.cost,
@@ -69,7 +70,7 @@ const ProductCostManager = () => {
   const handleDelete = async (pid) => {
     if (!window.confirm('Delete this product cost?')) return;
     try {
-      await api.delete(`/api/product-cost/delete/${pid}`);
+      await productCostAPI.delete(pid);
       notifySuccess('Product cost deleted');
       fetchCosts();
     } catch (err) {
@@ -81,7 +82,7 @@ const ProductCostManager = () => {
     if (!checkingCode) return;
     setCodeExists(null);
     try {
-      const res = await api.get(`/api/product-cost/exists/${checkingCode}`);
+      const res = await productCostAPI.checkCodeExists(checkingCode);
       setCodeExists(res.data.exists);
     } catch (err) {
       notifyError('Failed to check code');
@@ -94,7 +95,7 @@ const ProductCostManager = () => {
     if (!searchCode) return;
     setLoading(true);
     try {
-      const res = await api.get(`/api/product-cost/by-code/${searchCode}`);
+      const res = await productCostAPI.getByCode(searchCode);
       setCosts(res.data ? [res.data] : []);
     } catch (err) {
       notifyError('Not found');
@@ -109,7 +110,7 @@ const ProductCostManager = () => {
     if (!searchName) return;
     setLoading(true);
     try {
-      const res = await api.get(`/api/product-cost/by-name/${searchName}`);
+      const res = await productCostAPI.getByName(searchName);
       setCosts(res.data ? [res.data] : []);
     } catch (err) {
       notifyError('Not found');
@@ -133,7 +134,7 @@ const ProductCostManager = () => {
   };
   const handleEditSave = async (pid) => {
     try {
-      await api.put(`/api/product-cost/update/${pid}`, editForm);
+      await productCostAPI.update(pid, editForm);
       notifySuccess('Product cost updated');
       setEditId(null);
       fetchCosts();
@@ -148,7 +149,7 @@ const ProductCostManager = () => {
     setExpenseLoading(true);
     setExpenseDetail(null);
     try {
-      const res = await api.get(`/api/daily-expenses/salesman-date?alias=${selectedSalesman}&date=${expenseDate}`);
+      const res = await expenseAPI.getByDate(selectedSalesman, expenseDate);
       setExpenseDetail(res.data);
     } catch (err) {
       setExpenseDetail(null);
@@ -158,16 +159,16 @@ const ProductCostManager = () => {
   };
 
   return (
-    <div style={{ padding: 30, fontFamily: 'Calibri, sans-serif', maxWidth: 900, margin: '0 auto' }}>
+    <div className="pcm-page">
       <h2>Product Cost Manager</h2>
-      <form onSubmit={handleAdd} style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+      <form onSubmit={handleAdd} className="pcm-add-form">
         <input
           name="productName"
           value={form.productName}
           onChange={handleInputChange}
           placeholder="Product Name"
           required
-          style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 120 }}
+          className="pcm-input pcm-input-medium"
         />
         <input
           name="productCode"
@@ -175,7 +176,7 @@ const ProductCostManager = () => {
           onChange={handleInputChange}
           placeholder="Product Code"
           required
-          style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 80 }}
+          className="pcm-input pcm-input-short"
         />
         <input
           name="cost"
@@ -185,9 +186,9 @@ const ProductCostManager = () => {
           onChange={handleInputChange}
           placeholder="Cost"
           required
-          style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc', minWidth: 80 }}
+          className="pcm-input pcm-input-short"
         />
-        <button type="submit" style={{ padding: '8px 16px', borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', fontWeight: 'bold' }}>Add</button>
+        <button type="submit" className="pcm-button pcm-button-add">Add</button>
       </form>
 
       <div style={{ marginBottom: 20, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
