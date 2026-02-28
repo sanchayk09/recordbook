@@ -6,6 +6,7 @@ import java.math.RoundingMode;
 public class ProductSalesDTO {
     private String productCode;
     private Long totalQuantity;
+    private BigDecimal volumeSold;              // Sum of volume_sold for this product
     private BigDecimal productCost;              // Cost per unit from product_cost_manual
     private BigDecimal totalCost;                // totalQuantity * productCost
     private BigDecimal totalRevenue;             // Sum of revenue for this product
@@ -18,9 +19,10 @@ public class ProductSalesDTO {
     private BigDecimal avgNetProfit;             // Average net profit per unit: netProfit / totalQuantity
 
     // Constructor used by JPA queries with revenue data
-    public ProductSalesDTO(String productCode, Long totalQuantity, BigDecimal totalRevenue) {
+    public ProductSalesDTO(String productCode, Long totalQuantity, BigDecimal totalRevenue, BigDecimal volumeSold) {
         this.productCode = productCode;
         this.totalQuantity = totalQuantity;
+        this.volumeSold = volumeSold != null ? volumeSold : BigDecimal.ZERO;
         this.productCost = BigDecimal.ZERO;
         this.totalCost = BigDecimal.ZERO;
         this.totalRevenue = totalRevenue != null ? totalRevenue : BigDecimal.ZERO;
@@ -52,6 +54,14 @@ public class ProductSalesDTO {
 
     public void setTotalQuantity(Long totalQuantity) {
         this.totalQuantity = totalQuantity;
+    }
+
+    public BigDecimal getVolumeSold() {
+        return volumeSold;
+    }
+
+    public void setVolumeSold(BigDecimal volumeSold) {
+        this.volumeSold = volumeSold;
     }
 
     public BigDecimal getProductCost() {
@@ -139,6 +149,7 @@ public class ProductSalesDTO {
         return "ProductSalesDTO{" +
                 "productCode='" + productCode + '\'' +
                 ", totalQuantity=" + totalQuantity +
+                ", volumeSold=" + volumeSold +
                 ", productCost=" + productCost +
                 ", totalCost=" + totalCost +
                 ", totalRevenue=" + totalRevenue +
@@ -152,4 +163,3 @@ public class ProductSalesDTO {
                 '}';
     }
 }
-

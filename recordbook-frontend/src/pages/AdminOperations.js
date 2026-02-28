@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import api from '../api';
+import { customerAPI, salesmanAPI } from '../api';
 import '../styles/AdminDashboard.css';
+import '../styles/AdminOperations.css';
 import { notifySuccess, notifyError } from '../utils/toast';
 import AddSalesRecord from './AddSalesRecord';
 
@@ -53,7 +54,7 @@ const AdminOperations = () => {
         route: customerForm.routeId ? { routeId: parseInt(customerForm.routeId) } : null,
         village: customerForm.villageId ? { villageId: parseInt(customerForm.villageId) } : null
       };
-      await api.post('/api/admin/customers', payload);
+      await customerAPI.create(payload);
       notifySuccess('Customer added successfully!');
       setCustomerForm({ customerId: '', shopName: '', customerType: '', routeId: '', villageId: '' });
     } catch (err) {
@@ -75,7 +76,7 @@ const AdminOperations = () => {
         address: salesmanForm.address,
         contactNumber: salesmanForm.contactNumber
       };
-      await api.post('/api/v1/admin/salesmen', payload);
+      await salesmanAPI.create(payload);
       notifySuccess('Salesman added successfully!');
       setSalesmanForm({ firstName: '', lastName: '', alias: '', address: '', contactNumber: '' });
     } catch (err) {

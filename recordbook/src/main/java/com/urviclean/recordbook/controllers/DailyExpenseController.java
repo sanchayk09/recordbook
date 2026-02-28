@@ -59,7 +59,10 @@ public class DailyExpenseController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return repository.findBySalesmanAliasAndExpenseDate(alias, date)
                 .map(record -> ResponseEntity.ok(new DailyExpenseRecordResponse(record)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(() -> new com.urviclean.recordbook.exception.ResourceNotFoundException(
+                    "DailyExpenseRecord",
+                    String.format("salesman: %s, date: %s", alias, date)
+                ));
     }
 
     /**
@@ -124,7 +127,14 @@ public class DailyExpenseController {
     public ResponseEntity<Void> deleteDailyExpense(
             @RequestParam String alias,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        repository.deleteById(new com.urviclean.recordbook.models.DailyExpenseRecordId(alias, date));
+        var id = new com.urviclean.recordbook.models.DailyExpenseRecordId(alias, date);
+        if (!repository.existsById(id)) {
+            throw new com.urviclean.recordbook.exception.ResourceNotFoundException(
+                "DailyExpenseRecord",
+                String.format("salesman: %s, date: %s", alias, date)
+            );
+        }
+        repository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }

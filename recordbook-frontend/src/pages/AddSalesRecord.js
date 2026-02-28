@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import api from '../api';
+import { routeAPI, salesmanAPI, customerAPI, productAPI, salesAPI } from '../api';
 import { notifySuccess, notifyError } from '../utils/toast';
+import '../styles/AddSalesRecord.css';
 
 const AddSalesRecord = ({ onBack }) => {
   const [salesJsonInput, setSalesJsonInput] = useState('');
@@ -48,7 +49,7 @@ const AddSalesRecord = ({ onBack }) => {
 
   const fetchRoutes = async () => {
     try {
-      const response = await api.get('/api/routes');
+      const response = await routeAPI.getAll();
       setRoutes(response.data || []);
     } catch (err) {
       console.error('Failed to fetch routes:', err);
@@ -57,7 +58,7 @@ const AddSalesRecord = ({ onBack }) => {
 
   const fetchSalesmen = async () => {
     try {
-      const response = await api.get('/api/salesmen');
+      const response = await salesmanAPI.getAll();
       setSalesmen(response.data || []);
     } catch (err) {
       console.error('Failed to fetch salesmen:', err);
@@ -66,7 +67,7 @@ const AddSalesRecord = ({ onBack }) => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await api.get('/api/customers');
+      const response = await customerAPI.getAll();
       setCustomers(response.data || []);
     } catch (err) {
       console.error('Failed to fetch customers:', err);
@@ -75,7 +76,7 @@ const AddSalesRecord = ({ onBack }) => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
+      const response = await productAPI.getAll();
       setProducts(response.data || []);
     } catch (err) {
       console.error('Failed to fetch products:', err);
@@ -88,7 +89,7 @@ const AddSalesRecord = ({ onBack }) => {
       return;
     }
     try {
-      const response = await api.get(`/api/routes/${routeId}/villages`);
+      const response = await routeAPI.getVillages(routeId);
       setVillages(response.data || []);
     } catch (err) {
       console.error('Failed to fetch villages:', err);
@@ -122,7 +123,7 @@ const AddSalesRecord = ({ onBack }) => {
       return;
     }
     try {
-      await api.post('/api/routes', { routeName: newRoute.routeName });
+      await routeAPI.create({ routeName: newRoute.routeName });
       notifySuccess('Route added successfully!');
       await fetchRoutes();
       setNewRoute({ routeName: '' });
@@ -143,7 +144,7 @@ const AddSalesRecord = ({ onBack }) => {
       return;
     }
     try {
-      await api.post('/api/routes/villages', { 
+      await routeAPI.addVillage({ 
         routeId: parseInt(selectedRoute), 
         villageName: newVillage.villageName 
       });
@@ -167,7 +168,7 @@ const AddSalesRecord = ({ onBack }) => {
       return;
     }
     try {
-      await api.post('/api/v1/admin/salesmen', newSalesman);
+      await salesmanAPI.create(newSalesman);
       notifySuccess('Salesman added successfully!');
       await fetchSalesmen();
       setNewSalesman({ firstName: '', lastName: '', address: '', contactNumber: '' });
@@ -231,7 +232,7 @@ const AddSalesRecord = ({ onBack }) => {
           transactionReference: salesJsonData.transactionReference
         };
         
-        await api.post('/api/admin/sales', payload);
+        await salesAPI.createSales(payload);
       }
 
       notifySuccess(`Sales record added successfully! (${items.length} item${items.length > 1 ? 's' : ''})`);
@@ -253,28 +254,21 @@ const AddSalesRecord = ({ onBack }) => {
   // Input Step
   if (salesStep === 'input') {
     return (
-      <div style={{ maxWidth: '700px', margin: '20px auto', padding: '20px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
-        <h3 style={{ marginBottom: '15px' }}>Add Sales Record - JSON Input</h3>
-        <p style={{ color: '#666', marginBottom: '15px', fontSize: '14px' }}>
+      <div className="asr-container">
+        <h3 className="asr-title">Add Sales Record - JSON Input</h3>
+        <p className="asr-description">
           Paste the sales record JSON from the sales guy. Must include saleDate, customer, items array, and payment details. Route/Village/Salesman will be selected below.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <div className="asr-load-data-section">
           <button
             type="button"
             onClick={loadMasterData}
             disabled={masterLoading}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#16a34a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: masterLoading ? 'not-allowed' : 'pointer'
-            }}
+            className="asr-load-button"
           >
             {masterLoading ? 'Loading...' : masterLoaded ? 'Reload Master Data' : 'Load Master Data'}
           </button>
-          <span style={{ fontSize: '12px', color: '#666' }}>
+          <span className="asr-load-info">
             Loads routes, salesmen, customers, and products
           </span>
         </div>
@@ -303,41 +297,18 @@ const AddSalesRecord = ({ onBack }) => {
             paymentMode: "PHONEPE",
             transactionReference: "PPX78654321"
           }, null, 2)}
-          style={{
-            width: '100%',
-            height: '350px',
-            padding: '10px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            marginBottom: '15px'
-          }}
+          className="asr-textarea"
         />
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+        <div className="asr-actions">
           <button 
             onClick={onBack}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
+            className="asr-button asr-button-cancel"
           >
             Cancel
           </button>
           <button 
             onClick={handleParseSalesJson}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#16a34a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
+            className="asr-button asr-button-primary"
           >
             Parse & Continue
           </button>

@@ -1,0 +1,319 @@
+/* Daily Sales Dump Page Styles */
+
+.dsd-page {
+  padding: 30px;
+  font-family: Calibri, sans-serif;
+}
+
+.dsd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.dsd-header h2 {
+  margin: 0;
+}
+
+.dsd-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.dsd-salesman-label {
+  font-weight: bold;
+}
+
+.dsd-salesman-select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 180px;
+  font-family: Calibri, sans-serif;
+}
+
+.dsd-json-section {
+  margin-bottom: 20px;
+}
+
+.dsd-json-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.dsd-json-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.dsd-json-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.dsd-button {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-family: Calibri, sans-serif;
+  font-size: 14px;
+}
+
+.dsd-parse-button {
+  background-color: #66a37f;
+  color: #fff;
+}
+
+.dsd-parse-button:hover {
+  background-color: #508566;
+}
+
+.dsd-clear-button {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
+.dsd-clear-button:hover {
+  background-color: #d0d0d0;
+}
+
+.dsd-parse-error {
+  color: #b00020;
+  margin-top: 8px;
+  font-weight: bold;
+}
+
+.dsd-save-section {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dsd-save-button {
+  background-color: #1f7a4d;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.dsd-save-button:hover:not(:disabled) {
+  background-color: #165a3a;
+}
+
+.dsd-save-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.dsd-table-container {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.dsd-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+
+.dsd-table thead {
+  background-color: #66a37f;
+  color: #fff;
+}
+
+.dsd-table th {
+  padding: 8px;
+  border: 1px solid #d0d0d0;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dsd-table td {
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.dsd-table .text-left {
+  text-align: left;
+}
+
+.dsd-table tbody tr {
+  background-color: #fff;
+}
+
+.dsd-table tbody tr:nth-child(even) {
+  background-color: #f7f9fc;
+}
+
+.dsd-table .totals-row {
+  background-color: #eef2f7;
+  font-weight: bold;
+}
+
+.dsd-table td[colspan] {
+  text-align: center;
+}
+
+/* Modal Styles */
+.dsd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.dsd-modal-content {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  max-height: 80vh;
+  overflow-y: auto;
+  max-width: 600px;
+  width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dsd-modal-header {
+  margin-bottom: 20px;
+}
+
+.dsd-modal-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.dsd-modal-subtitle {
+  color: #666;
+  font-size: 14px;
+}
+
+.dsd-expense-section {
+  margin-bottom: 20px;
+}
+
+.dsd-expense-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.dsd-expense-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: Calibri, sans-serif;
+  width: 100%;
+}
+
+.dsd-expense-entries {
+  margin-top: 15px;
+}
+
+.dsd-expense-entry {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.dsd-expense-entry input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: Calibri, sans-serif;
+  font-size: 14px;
+}
+
+.dsd-add-expense-button {
+  background-color: #e9ecef;
+  color: #333;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dsd-add-expense-button:hover {
+  background-color: #d9dce0;
+}
+
+.dsd-remove-expense-button {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dsd-remove-expense-button:hover {
+  background-color: #f5c6cb;
+}
+
+.dsd-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.dsd-modal-cancel-button {
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dsd-modal-cancel-button:hover {
+  background-color: #5a6268;
+}
+
+.dsd-modal-confirm-button {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.dsd-modal-confirm-button:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.dsd-modal-confirm-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}

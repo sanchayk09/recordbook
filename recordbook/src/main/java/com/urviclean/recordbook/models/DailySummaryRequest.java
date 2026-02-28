@@ -10,19 +10,23 @@ public class DailySummaryRequest {
     public BigDecimal totalExpense;
     public BigDecimal totalRevenue;
     public BigDecimal totalAgentCommission;
+    public BigDecimal volumeSold;
+    public Long totalQuantity;
 
     public DailySummaryRequest() {
     }
 
     public DailySummaryRequest(String salesmanAlias, LocalDate saleDate,
                                BigDecimal materialCost, BigDecimal totalExpense,
-                               BigDecimal totalRevenue, BigDecimal totalAgentCommission) {
+                               BigDecimal totalRevenue, BigDecimal totalAgentCommission, BigDecimal volumeSold, Long totalQuantity) {
         this.salesmanAlias = salesmanAlias;
         this.saleDate = saleDate;
         this.materialCost = materialCost;
         this.totalExpense = totalExpense;
         this.totalRevenue = totalRevenue;
         this.totalAgentCommission = totalAgentCommission;
+        this.volumeSold = volumeSold;
+        this.totalQuantity = totalQuantity;
     }
 
     public String getSalesmanAlias() {
@@ -73,6 +77,22 @@ public class DailySummaryRequest {
         this.totalAgentCommission = totalAgentCommission;
     }
 
+    public BigDecimal getVolumeSold() {
+        return volumeSold;
+    }
+
+    public void setVolumeSold(BigDecimal volumeSold) {
+        this.volumeSold = volumeSold;
+    }
+
+    public Long getTotalQuantity() {
+        return totalQuantity;
+    }
+
+    public void setTotalQuantity(Long totalQuantity) {
+        this.totalQuantity = totalQuantity;
+    }
+
     @Override
     public String toString() {
         return "DailySummaryRequest{" +
@@ -82,6 +102,8 @@ public class DailySummaryRequest {
                 ", totalExpense=" + totalExpense +
                 ", totalRevenue=" + totalRevenue +
                 ", totalAgentCommission=" + totalAgentCommission +
+                ", volumeSold=" + volumeSold +
+                ", totalQuantity=" + totalQuantity +
                 '}';
     }
 }

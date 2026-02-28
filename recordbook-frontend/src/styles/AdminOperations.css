@@ -1,0 +1,38 @@
+/* Admin Operations Page Styles */
+
+.ado-operations-container {
+  padding: 20px;
+}
+
+/* Operation Selection */
+.ado-operation-selector {
+  max-width: 600px;
+  margin: 30px auto;
+  text-align: center;
+}
+
+.ado-operation-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.ado-operation-select {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: Calibri, sans-serif;
+}
+
+/* Form Grid for Customer and Salesman */
+.ado-form-wrapper {
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+/* Inline styles for maxWidth and margin need to be handled in the component */
+/* The form-grid, form-control, input-field, select-field, form-actions, btn-submit
+   are already in AdminDashboard.css, so they will work here too */

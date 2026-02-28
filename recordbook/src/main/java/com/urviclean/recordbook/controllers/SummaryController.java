@@ -28,12 +28,8 @@ public class SummaryController {
      */
     @PostMapping("/submit")
     public ResponseEntity<DailySummaryResponse> submitDailySummary(@RequestBody DailySummaryRequest request) {
-        try {
-            DailySummaryResponse response = dailySummaryService.submitDailySummary(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-        }
+        DailySummaryResponse response = dailySummaryService.submitDailySummary(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -44,12 +40,8 @@ public class SummaryController {
     public ResponseEntity<DailySummaryResponse> getSummary(
             @RequestParam String alias,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            DailySummaryResponse response = dailySummaryService.getSummary(alias, date);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        DailySummaryResponse response = dailySummaryService.getSummary(alias, date);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -117,12 +109,8 @@ public class SummaryController {
             @RequestParam String alias,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestBody DailySummaryRequest request) {
-        try {
-            DailySummaryResponse response = dailySummaryService.updateSummary(alias, date, request);
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        DailySummaryResponse response = dailySummaryService.updateSummary(alias, date, request);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -133,12 +121,8 @@ public class SummaryController {
     public ResponseEntity<Void> deleteSummary(
             @RequestParam String alias,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            dailySummaryService.deleteSummary(alias, date);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+        dailySummaryService.deleteSummary(alias, date);
+        return ResponseEntity.noContent().build();
     }
 }
 

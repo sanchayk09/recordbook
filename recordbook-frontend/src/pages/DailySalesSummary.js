@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import { salesAPI, salesmanAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
 import { getTodayDate, getCurrentMonth } from '../utils/dateUtils';
+import '../styles/DailySalesSummary.css';
 
 const DailySalesSummary = () => {
   const [salesRecords, setSalesRecords] = useState([]);
@@ -27,13 +28,13 @@ const DailySalesSummary = () => {
   const fetchSalesRecords = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/sales');
+      const response = await salesAPI.getAllSales();
       console.log('Sales Records:', response.data);
       const records = Array.isArray(response.data) ? response.data : [];
       setSalesRecords(records);
 
       // Fetch salesmen for dropdown
-      const salesmenResponse = await api.get('/api/v1/admin/salesmen/aliases');
+      const salesmenResponse = await salesmanAPI.getAliases();
       setSalesmen(Array.isArray(salesmenResponse.data) ? salesmenResponse.data : []);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -82,6 +83,7 @@ const DailySalesSummary = () => {
     return filtered;
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const filteredRecords = useMemo(() => {
     return getFilteredRecords();
   }, [salesRecords, filterType, selectedDate, startDate, endDate, selectedMonth, selectedProduct]);
@@ -89,9 +91,9 @@ const DailySalesSummary = () => {
   const sortedRecords = useMemo(() => {
     const records = [...filteredRecords];
     return records.sort((a, b) => {
-      const aSlNo = Number(a.slNo) || 0;
-      const bSlNo = Number(b.slNo) || 0;
-      return sortOrder === 'asc' ? aSlNo - bSlNo : bSlNo - aSlNo;
+      const dateA = new Date(a.saleDate);
+      const dateB = new Date(b.saleDate);
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
   }, [filteredRecords, sortOrder]);
 
@@ -136,7 +138,7 @@ const DailySalesSummary = () => {
 
   const deleteRecord = async (recordId) => {
     try {
-      await api.delete(`/api/sales/${recordId}`);
+      await salesAPI.deleteSales(recordId);
       notifySuccess('Sales record deleted successfully');
       setSalesRecords(salesRecords.filter(record => record.id !== recordId));
     } catch (error) {
@@ -154,7 +156,7 @@ const DailySalesSummary = () => {
 
   const handleSaveEdit = async () => {
     try {
-      await api.put(`/api/sales/${editingRecord.id}`, editFormData);
+      await salesAPI.updateSales(editingRecord.id, editFormData);
       notifySuccess('Sales record updated successfully');
       setSalesRecords(salesRecords.map(r => 
         r.id === editingRecord.id 
@@ -170,208 +172,121 @@ const DailySalesSummary = () => {
   };
 
   return (
-    <div style={{ padding: '30px', fontFamily: 'Calibri, sans-serif' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>Daily Sales Summary</h2>
+    <div className="dss-page">
+      <div className="dss-header">
+        <h2>Daily Sales Summary</h2>
         <button
           type="button"
           onClick={() => navigate('/daily-sales')}
-          style={{
-            backgroundColor: '#66a37f',
-            color: '#fff',
-            border: 'none',
-            padding: '10px 16px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
+          className="dss-back-button"
         >
           Back to Daily Sales
         </button>
       </div>
 
       {/* Date Filter */}
-      <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
-        <label style={{ display: 'block', marginBottom: '12px', fontWeight: 'bold', color: '#333', fontSize: '16px' }}>Filter By:</label>
+      <div className="dss-filter-section">
+        <label className="dss-filter-label">Filter By:</label>
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+        <div className="dss-filter-buttons-group">
           <button
             onClick={() => setFilterType('today')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              backgroundColor: filterType === 'today' ? '#16a34a' : '#e9ecef',
-              color: filterType === 'today' ? '#fff' : '#333',
-            }}
+            className={`dss-filter-button ${filterType === 'today' ? 'active' : ''}`}
           >
             Today
           </button>
 
           <button
             onClick={() => setFilterType('week')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              backgroundColor: filterType === 'week' ? '#16a34a' : '#e9ecef',
-              color: filterType === 'week' ? '#fff' : '#333',
-            }}
+            className={`dss-filter-button ${filterType === 'week' ? 'active' : ''}`}
           >
             This Week
           </button>
 
           <button
             onClick={() => setFilterType('month')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              backgroundColor: filterType === 'month' ? '#16a34a' : '#e9ecef',
-              color: filterType === 'month' ? '#fff' : '#333',
-            }}
+            className={`dss-filter-button ${filterType === 'month' ? 'active' : ''}`}
           >
             This Month
           </button>
 
           <button
             onClick={() => setFilterType('date')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              backgroundColor: filterType === 'date' ? '#16a34a' : '#e9ecef',
-              color: filterType === 'date' ? '#fff' : '#333',
-            }}
+            className={`dss-filter-button ${filterType === 'date' ? 'active' : ''}`}
           >
             Specific Date
           </button>
 
           <button
             onClick={() => setFilterType('range')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '4px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              backgroundColor: filterType === 'range' ? '#16a34a' : '#e9ecef',
-              color: filterType === 'range' ? '#fff' : '#333',
-            }}
+            className={`dss-filter-button ${filterType === 'range' ? 'active' : ''}`}
           >
             Date Range
           </button>
         </div>
 
         {/* Filter input based on selected filter type */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="dss-filter-inputs">
           {filterType === 'date' && (
             <>
-              <label style={{ fontWeight: 'bold', color: '#555' }}>Date:</label>
+              <label className="dss-filter-input-label">Date:</label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'Calibri, sans-serif',                  width: '130px',                }}
+                className="dss-filter-input date-input"
               />
             </>
           )}
 
           {filterType === 'month' && (
             <>
-              <label style={{ fontWeight: 'bold', color: '#555' }}>Month:</label>
+              <label className="dss-filter-input-label">Month:</label>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'Calibri, sans-serif',
-                  width: '110px',
-                }}
+                className="dss-filter-input month-input"
               />
             </>
           )}
 
           {filterType === 'week' && (
             <>
-              <label style={{ fontWeight: 'bold', color: '#555' }}>Week starting:</label>
+              <label className="dss-filter-input-label">Week starting:</label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'Calibri, sans-serif',
-                  width: '130px',
-                }}
+                className="dss-filter-input date-input"
               />
             </>
           )}
 
           {filterType === 'range' && (
             <>
-              <label style={{ fontWeight: 'bold', color: '#555' }}>From:</label>
+              <label className="dss-filter-input-label">From:</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'Calibri, sans-serif',
-                  width: '130px',
-                }}
+                className="dss-filter-input date-input"
               />
-              <label style={{ fontWeight: 'bold', color: '#555' }}>To:</label>
+              <label className="dss-filter-input-label">To:</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  fontFamily: 'Calibri, sans-serif',
-                  width: '130px',
-                }}
+                className="dss-filter-input date-input"
               />
             </>
           )}
 
-          <label style={{ fontWeight: 'bold', color: '#555', marginLeft: '20px' }}>Product:</label>
+          <label className="dss-filter-input-label" style={{ marginLeft: '20px' }}>Product:</label>
           <select
             value={selectedProduct}
             onChange={(e) => setSelectedProduct(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontFamily: 'Calibri, sans-serif',
-              minWidth: '150px',
-            }}
+            className="dss-filter-input select-input"
           >
             <option value="">All Products</option>
             {uniqueProducts.map((product, idx) => (
@@ -381,8 +296,8 @@ const DailySalesSummary = () => {
             ))}
           </select>
 
-          <span style={{ color: '#666', fontSize: '14px', marginLeft: 'auto' }}>
-            Showing <strong>{filteredRecords.length}</strong> record{filteredRecords.length !== 1 ? 's' : ''}
+          <span className="dss-filter-total">
+            Total: <strong>{filteredRecords.length}</strong> record{filteredRecords.length !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
@@ -404,7 +319,7 @@ const DailySalesSummary = () => {
                     userSelect: 'none',
                     backgroundColor: '#0d5a1f',
                   }}
-                  title="Click to sort by Serial Number"
+                  title="Click to sort by Sale Date"
                 >
                   SL No {sortOrder === 'asc' ? '↑' : '↓'}
                 </th>
@@ -433,7 +348,7 @@ const DailySalesSummary = () => {
               ) : (
                 sortedRecords.map((record, index) => (
                   <tr key={record.id || index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f7f9fc' }}>
-                    <td style={tdStyle}>{record.slNo}</td>
+                    <td style={tdStyle}>{index + 1}</td>
                     <td style={tdStyle}>{record.saleDate}</td>
                     <td style={tdStyle}>{record.salesmanName}</td>
                     <td style={{ ...tdStyle, textAlign: 'left' }}>{record.customerName}</td>
