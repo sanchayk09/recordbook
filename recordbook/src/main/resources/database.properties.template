@@ -1,0 +1,13 @@
+# Database Configuration Template
+# Copy this file to database.properties and fill in your actual values
+# DO NOT commit database.properties file with real credentials!
+
+# Database to use (urviclean_manual for dev, urviclean_test for testing)
+db.name=urviclean_test
+
+# MySQL Connection Details
+db.host=localhost
+db.port=3306
+db.username=root
+db.password=YOUR_PASSWORD_HERE
+

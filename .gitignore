@@ -111,3 +111,6 @@ dist
 # Local environment override
 local.properties
 
+# Database credentials (sensitive)
+**/database.properties
+
