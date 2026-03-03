@@ -20,7 +20,7 @@ public class Salesman {
     @Column(name = "last_name")
     private String lastName;
 
-    @Column(name = "alias", nullable = false, unique = true)
+    @Column(name = "alias", nullable = false, unique = true, length = 255)
     private String alias;
 
     @Column(name = "address")

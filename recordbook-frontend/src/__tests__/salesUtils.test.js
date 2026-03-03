@@ -1,15 +1,15 @@
 import { filterSales, sortSales } from '../utils/salesUtils';
 
 const sample = [
-  { saleDate: '2023-01-01', quantity: 5, totalRevenue: 500, variant: 'Lemon', size: '1' },
-  { saleDate: '2023-02-01', quantity: 2, totalRevenue: 200, variant: 'Neem', size: '500' },
-  { saleDate: '2023-01-15', quantity: 10, totalRevenue: 1000, variant: 'Lemon', size: '5' },
+  { saleDate: '2023-01-01', quantity: 5, totalRevenue: 500, productCode: 'Lemon', size: '1' },
+  { saleDate: '2023-02-01', quantity: 2, totalRevenue: 200, productCode: 'Neem', size: '500' },
+  { saleDate: '2023-01-15', quantity: 10, totalRevenue: 1000, productCode: 'Lemon', size: '5' },
 ];
 
-test('filterSales filters by variant and size', () => {
-  expect(filterSales(sample, { variant: 'Lemon' }).length).toBe(2);
+test('filterSales filters by productCode and size', () => {
+  expect(filterSales(sample, { productCode: 'Lemon' }).length).toBe(2);
   expect(filterSales(sample, { size: '500' }).length).toBe(1);
-  expect(filterSales(sample, { variant: 'Lemon', size: '5' }).length).toBe(1);
+  expect(filterSales(sample, { productCode: 'Lemon', size: '5' }).length).toBe(1);
 });
 
 test('sortSales sorts by quantity and revenue and date', () => {

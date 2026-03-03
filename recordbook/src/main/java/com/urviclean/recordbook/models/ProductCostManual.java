@@ -16,11 +16,20 @@ public class ProductCostManual {
     @Column(name = "product_name", nullable = false)
     private String productName;
 
-    @Column(name = "product_code", nullable = false, unique = true)
+    @Column(name = "product_code", nullable = false, unique = true, length = 255)
     private String productCode;
 
     @Column(name = "cost", nullable = false)
     private BigDecimal cost;
+
+    @Column(name = "variant", nullable = true)
+    private String variant;
+
+    @Column(name = "metric", nullable = true)
+    private String metric;
+
+    @Column(name = "metric_quantity", nullable = true)
+    private BigDecimal metricQuantity;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -98,13 +107,40 @@ public class ProductCostManual {
         this.updatedAt = updatedAt;
     }
 
+    public String getVariant() {
+        return variant;
+    }
+
+    public void setVariant(String variant) {
+        this.variant = variant;
+    }
+
+    public String getMetric() {
+        return metric;
+    }
+
+    public void setMetric(String metric) {
+        this.metric = metric;
+    }
+
+    public BigDecimal getMetricQuantity() {
+        return metricQuantity;
+    }
+
+    public void setMetricQuantity(BigDecimal metricQuantity) {
+        this.metricQuantity = metricQuantity;
+    }
+
     @Override
     public String toString() {
         return "ProductCostManual{" +
                 "pid=" + pid +
                 ", productName='" + productName + '\'' +
                 ", productCode='" + productCode + '\'' +
+                ", variant='" + variant + '\'' +
                 ", cost=" + cost +
+                ", metric='" + metric + '\'' +
+                ", metricQuantity=" + metricQuantity +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';

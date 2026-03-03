@@ -9,6 +9,7 @@ import DailySalesDump from './pages/DailySalesDump';
 import DailySalesSummary from './pages/DailySalesSummary';
 import ProductSalesSummary from './pages/ProductSalesSummary';
 import ProductCostManager from './pages/ProductCostManager';
+import WarehouseDashboard from './pages/WarehouseDashboard';
 
 function AppContent() {
   const location = useLocation();
@@ -26,6 +27,7 @@ function AppContent() {
           <Route path="/daily-sales-summary" element={<DailySalesSummary />} />
           <Route path="/product-sales-summary" element={<ProductSalesSummary />} />
           <Route path="/product-cost-manager" element={<ProductCostManager />} />
+          <Route path="/warehouse" element={<WarehouseDashboard />} />
           <Route path="/daily-summary-report" element={
             <React.Suspense fallback={<div>Loading...</div>}>
               {React.createElement(require('./pages/DailySummaryReport').default)}

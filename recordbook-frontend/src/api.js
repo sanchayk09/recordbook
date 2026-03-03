@@ -2,7 +2,9 @@ import axios from 'axios';
 import { notifyError } from './utils/toast';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
+  baseURL:
+    process.env.REACT_APP_API_URL ||
+    (process.env.NODE_ENV === 'development' ? '' : 'http://localhost:8080'),
   timeout: 10000,
 });
 
@@ -145,6 +147,114 @@ export const expenseAPI = {
 export const summaryAPI = {
   // Submit summary
   submit: (data) => api.post('/api/summary/submit', data),
+};
+
+const isRetryableWarehouseRouteError = (error) => {
+  const status = error?.response?.status;
+  return status === 404 || status === 405 || status === 501;
+};
+
+const callWarehouseWithFallback = async (requestFns) => {
+  let lastError;
+
+  for (const requestFn of requestFns) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableWarehouseRouteError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+};
+
+// ==================== WAREHOUSE API ====================
+export const warehouseAPI = {
+  // Get all inventory
+  getAllInventory: () =>
+    callWarehouseWithFallback([
+      () => api.get('/api/warehouse/inventory'),
+      () => api.get('/api/v1/warehouse/inventory'),
+      () => api.get('/api/v1/admin/warehouse/inventory'),
+    ]),
+
+  // Get inventory by product code
+  getInventoryByProductCode: (productCode) =>
+    callWarehouseWithFallback([
+      () => api.get(`/api/warehouse/inventory/${productCode}`),
+      () => api.get(`/api/v1/warehouse/inventory/${productCode}`),
+      () => api.get(`/api/v1/admin/warehouse/inventory/${productCode}`),
+    ]),
+
+  // Issue stock to salesman
+  issueStock: (data) =>
+    callWarehouseWithFallback([
+      () => api.post('/api/warehouse/issue', data),
+      () => api.post('/api/v1/warehouse/issue', data),
+      () => api.post('/api/v1/admin/warehouse/issue', data),
+    ]),
+
+  // Return stock from salesman
+  returnStock: (data) =>
+    callWarehouseWithFallback([
+      () => api.post('/api/warehouse/return', data),
+      () => api.post('/api/v1/warehouse/return', data),
+      () => api.post('/api/v1/admin/warehouse/return', data),
+    ]),
+
+  // Adjust stock (TRANSFER_IN, DAMAGE, MANUAL_ADJUST)
+  adjustStock: (data) =>
+    callWarehouseWithFallback([
+      () => api.post('/api/warehouse/adjust', data),
+      () => api.post('/api/v1/warehouse/adjust', data),
+      () => api.post('/api/v1/admin/warehouse/adjust', data),
+    ]),
+
+  // Get all salesmen with their stock breakdown
+  getSalesmenStockSummary: () =>
+    callWarehouseWithFallback([
+      () => api.get('/api/warehouse/salesmen-stock-summary'),
+      () => api.get('/api/v1/warehouse/salesmen-stock-summary'),
+      () => api.get('/api/v1/admin/warehouse/salesmen-stock-summary'),
+    ]),
+
+  // Get all ledger entries
+  getAllLedger: () =>
+    callWarehouseWithFallback([
+      () => api.get('/api/warehouse/ledger'),
+      () => api.get('/api/v1/warehouse/ledger'),
+      () => api.get('/api/v1/admin/warehouse/ledger'),
+    ]),
+
+  // Get ledger by product
+  getLedgerByProduct: (productCode) =>
+    callWarehouseWithFallback([
+      () => api.get(`/api/warehouse/ledger/product/${productCode}`),
+      () => api.get(`/api/v1/warehouse/ledger/product/${productCode}`),
+      () => api.get(`/api/v1/admin/warehouse/ledger/product/${productCode}`),
+    ]),
+
+  // Get ledger by salesman
+  getLedgerBySalesman: (salesmanAlias) =>
+    callWarehouseWithFallback([
+      () => api.get(`/api/warehouse/ledger/salesman/${salesmanAlias}`),
+      () => api.get(`/api/v1/warehouse/ledger/salesman/${salesmanAlias}`),
+      () => api.get(`/api/v1/admin/warehouse/ledger/salesman/${salesmanAlias}`),
+    ]),
+
+  // Get stock with salesman
+  getStockWithSalesman: (salesmanAlias, productCode = null) => {
+    const query = productCode ? `?productCode=${encodeURIComponent(productCode)}` : '';
+
+    return callWarehouseWithFallback([
+      () => api.get(`/api/warehouse/salesman/${salesmanAlias}/stock${query}`),
+      () => api.get(`/api/v1/warehouse/salesman/${salesmanAlias}/stock${query}`),
+      () => api.get(`/api/v1/admin/warehouse/salesman/${salesmanAlias}/stock${query}`),
+    ]);
+  },
 };
 
 export default api;

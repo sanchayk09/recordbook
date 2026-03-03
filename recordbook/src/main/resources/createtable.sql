@@ -1,43 +1,47 @@
 -- ============================================================
 -- URVI CLEAN - Production Ready ERP Schema (MySQL 8+)
--- ============================================================
--- Notes:
--- - Uses BIGINT AUTO_INCREMENT primary keys (stable IDs)
--- - Supports multi-warehouse chemical inventory
--- - Supports production batches + batch chemical consumption for true costing
--- - Sales records reference customer/product/salesman (+ optional batch)
--- - Includes useful indexes
+-- Fresh Schema with All Migrations Applied
+-- Generated: February 28, 2026
 -- ============================================================
 
--- ----------------------------
--- 0) Drop in safe order
--- ----------------------------
+-- Set SQL mode for compatibility
+SET SQL_MODE = "0";
+SET AUTOCOMMIT = 0;
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+-- ============================================================
+-- Drop existing tables in safe order
+-- ============================================================
+SET FOREIGN_KEY_CHECKS=0;
+
+DROP TABLE IF EXISTS warehouse_ledger;
+DROP TABLE IF EXISTS warehouse_inventory;
 DROP TABLE IF EXISTS daily_sale_record;
 DROP TABLE IF EXISTS daily_expense_record;
 DROP TABLE IF EXISTS daily_summary;
 DROP TABLE IF EXISTS sales_records;
 DROP TABLE IF EXISTS salesman_expenses;
-
 DROP TABLE IF EXISTS product_cost_manual;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS salesmen;
-
 DROP TABLE IF EXISTS route_villages;
 DROP TABLE IF EXISTS routes;
-
 DROP TABLE IF EXISTS batch_consumption;
 DROP TABLE IF EXISTS production_batches;
 DROP TABLE IF EXISTS product_recipes;
 DROP TABLE IF EXISTS products;
-
 DROP TABLE IF EXISTS chemical_inventory;
 DROP TABLE IF EXISTS warehouses;
 DROP TABLE IF EXISTS chemicals;
 DROP TABLE IF EXISTS vendors;
 
--- ----------------------------
+SET FOREIGN_KEY_CHECKS=1;
+
+-- ============================================================
 -- 1) Infrastructure & Procurement
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE vendors (
     vendor_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     vendor_name VARCHAR(100) NOT NULL,
@@ -52,7 +56,7 @@ CREATE TABLE chemicals (
     chemical_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     chemical_name VARCHAR(100) NOT NULL,
     category ENUM('Raw Material', 'Packaging', 'Labeling', 'Other') NOT NULL,
-    unit VARCHAR(20) NOT NULL, -- Litre, Kg, Piece etc.
+    unit VARCHAR(20) NOT NULL,
     purchase_rate DECIMAL(12,4) NOT NULL,
     transport_cost_per_unit DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
     vendor_id BIGINT,
@@ -90,25 +94,23 @@ CREATE TABLE chemical_inventory (
     INDEX idx_inventory_warehouse (warehouse_id)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 2) Products & Recipes
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE products (
     product_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_name VARCHAR(100) NOT NULL,
-    variant VARCHAR(50),
+    product_code VARCHAR(50),
     size VARCHAR(20),
     target_price DECIMAL(12,2),
     base_commission DECIMAL(12,2),
     other_overhead_cost DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_products_name (product_name),
-    INDEX idx_products_variant (variant)
+    INDEX idx_products_product_code (product_code)
 ) ENGINE=InnoDB;
 
--- ----------------------------
--- 2b) Product Cost Manual (For manual cost entry by product code)
--- ----------------------------
 CREATE TABLE product_cost_manual (
     pid BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_name VARCHAR(100) NOT NULL,
@@ -120,6 +122,53 @@ CREATE TABLE product_cost_manual (
     INDEX idx_product_name (product_name),
     INDEX idx_product_code (product_code)
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- Warehouse Management (Using product_cost_manual as Product Master)
+-- ============================================================
+
+CREATE TABLE warehouse_inventory (
+    warehouse_inventory_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_code VARCHAR(20) NOT NULL,
+    qty_available INT NOT NULL DEFAULT 0 COMMENT 'Current physical stock in warehouse (PCS)',
+    last_updated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_warehouse_inv_product
+        FOREIGN KEY (product_code) REFERENCES product_cost_manual(product_code)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    UNIQUE KEY uk_warehouse_product_code (product_code),
+    INDEX idx_warehouse_product_code (product_code),
+
+    CONSTRAINT chk_qty_not_negative CHECK (qty_available >= 0)
+) ENGINE=InnoDB COMMENT='Current warehouse stock - sellable inventory only';
+
+CREATE TABLE warehouse_ledger (
+    warehouse_ledger_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_code VARCHAR(20) NOT NULL,
+    txn_type ENUM('TRANSFER_IN', 'ISSUE_TO_SALESMAN', 'RETURN_FROM_SALESMAN', 'MANUAL_ADJUST', 'DAMAGE') NOT NULL,
+    delta_qty INT NOT NULL COMMENT 'Positive for additions, negative for removals',
+    qty_before INT NOT NULL,
+    qty_after INT NOT NULL,
+    salesman_alias VARCHAR(100) NULL COMMENT 'Applicable for ISSUE/RETURN transactions',
+    remarks TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100) NULL,
+
+    CONSTRAINT fk_warehouse_ledger_product
+        FOREIGN KEY (product_code) REFERENCES product_cost_manual(product_code)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    CONSTRAINT fk_warehouse_ledger_salesman
+        FOREIGN KEY (salesman_alias) REFERENCES salesmen(alias)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    INDEX idx_ledger_product_code (product_code),
+    INDEX idx_ledger_txn_type (txn_type),
+    INDEX idx_ledger_salesman (salesman_alias),
+    INDEX idx_ledger_created_at (created_at)
+) ENGINE=InnoDB COMMENT='Audit trail for all warehouse stock movements';
 
 CREATE TABLE product_recipes (
     recipe_id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -138,9 +187,10 @@ CREATE TABLE product_recipes (
     INDEX idx_recipes_chemical (chemical_id)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 3) Manufacturing / Production
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE production_batches (
     batch_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_id BIGINT NOT NULL,
@@ -173,9 +223,10 @@ CREATE TABLE batch_consumption (
     INDEX idx_consumption_chemical (chemical_id)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 4) Routes & Villages
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE routes (
     route_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     route_name VARCHAR(100) NOT NULL,
@@ -195,9 +246,10 @@ CREATE TABLE route_villages (
     INDEX idx_villages_route (route_id)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 5) Team & Customers
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE salesmen (
     salesman_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     first_name VARCHAR(50) NOT NULL,
@@ -230,9 +282,10 @@ CREATE TABLE customers (
     INDEX idx_customers_shop (shop_name)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 6) Salesman Expenses
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE salesman_expenses (
     expense_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     salesman_id BIGINT NOT NULL,
@@ -247,9 +300,10 @@ CREATE TABLE salesman_expenses (
     INDEX idx_expenses_date (expense_date)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 7) Sales Records
--- ----------------------------
+-- ============================================================
+
 CREATE TABLE sales_records (
     sale_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     salesman_id BIGINT NOT NULL,
@@ -283,10 +337,9 @@ CREATE TABLE sales_records (
     INDEX idx_sales_batch (batch_id)
 ) ENGINE=InnoDB;
 
--- ----------------------------
+-- ============================================================
 -- 8) Daily Expense Record (Aggregated)
--- ----------------------------
-DROP TABLE IF EXISTS daily_expense_record;
+-- ============================================================
 
 CREATE TABLE daily_expense_record (
     salesman_alias VARCHAR(100) NOT NULL,
@@ -301,51 +354,50 @@ CREATE TABLE daily_expense_record (
         FOREIGN KEY (salesman_alias) REFERENCES salesmen(alias)
         ON UPDATE RESTRICT ON DELETE RESTRICT,
 
-    INDEX idx_daily_expense_date (expense_date),
-
+    INDEX idx_daily_expense_date (expense_date)
 ) ENGINE=InnoDB;
 
-DROP TABLE IF EXISTS daily_sale_record;
+-- ============================================================
+-- 9) Daily Sale Record (with all migrations applied)
+-- ============================================================
 
 CREATE TABLE daily_sale_record (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-
     sl_no INT NOT NULL,
     sale_date DATE NOT NULL,
     salesman_name VARCHAR(100) NOT NULL,
     expense_id BIGINT,
-
     customer_name VARCHAR(150) NOT NULL,
     customer_type ENUM('CUSTOMER','SHOPKEEPER') NOT NULL,
     village VARCHAR(100),
     mobile_number VARCHAR(20),
-
     product_code VARCHAR(20) NOT NULL,
     quantity INT NOT NULL,
     rate DECIMAL(10,2) NOT NULL,
     revenue DECIMAL(12,2) NOT NULL,
-    agent_commission DECIMAL(10,2),
-    volume_sold DECIMAL(12,2) COMMENT 'Calculated as quantity * volume_in_quantity based on product_code'
-);
+    agent_commission DECIMAL(10,2) DEFAULT 0,
+    volume_sold DECIMAL(12,2) COMMENT 'Calculated as quantity * volume_in_quantity based on product_code',
 
-CREATE INDEX idx_salesman_name
-ON daily_sale_record(salesman_name);
+    INDEX idx_salesman_name (salesman_name),
+    INDEX idx_daily_sale_product_code (product_code),
+    INDEX idx_sale_date (sale_date)
+) ENGINE=InnoDB;
 
-CREATE INDEX idx_daily_sale_product_code
-ON daily_sale_record(product_code);
+-- ============================================================
+-- 10) Daily Summary (with all migrations applied)
+-- ============================================================
 
--- ----------------------------
--- 9) Daily Summary (Financial Summary per Salesman per Day)
--- ----------------------------
 CREATE TABLE daily_summary (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     salesman_alias VARCHAR(100) NOT NULL,
-    sale_date DATE NOT NULL UNIQUE,
+    sale_date DATE NOT NULL,
 
     total_revenue DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     total_agent_commission DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     total_expense DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     material_cost DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    volume_sold DECIMAL(12,2) COMMENT 'Total volume sold for this day (sum of volume_sold from daily_sale_record)',
+    total_quantity BIGINT COMMENT 'Total quantity sold for this day (sum of quantity from daily_sale_record)',
 
     net_profit DECIMAL(14,2) COMMENT 'Calculated as: total_revenue - total_agent_commission - total_expense - material_cost',
 
@@ -360,4 +412,21 @@ CREATE TABLE daily_summary (
     INDEX idx_summary_date (sale_date),
     INDEX idx_summary_alias (salesman_alias)
 ) ENGINE=InnoDB;
+
+-- ============================================================
+-- Schema creation completed successfully
+-- ============================================================
+
+COMMIT;
+
+-- ============================================================
+-- NOTES:
+-- ============================================================
+-- This schema includes all migrations:
+-- 1. agent_commission column added to daily_sale_record
+-- 2. volume_sold column added to daily_sale_record
+-- 3. volume_sold column added to daily_summary
+-- 4. total_quantity column added to daily_summary
+-- 5. Fixed column order in daily_summary table
+-- ============================================================
 

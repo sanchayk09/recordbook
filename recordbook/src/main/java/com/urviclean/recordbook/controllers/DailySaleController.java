@@ -21,6 +21,8 @@ import com.urviclean.recordbook.repositories.DailySaleRecordRepository;
 import com.urviclean.recordbook.repositories.SalesmanExpenseRepository;
 import com.urviclean.recordbook.repositories.SalesmanRepository;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
+import com.urviclean.recordbook.repositories.WarehouseLedgerRepository;
+import com.urviclean.recordbook.models.WarehouseLedger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,9 +52,13 @@ public class DailySaleController {
     private DailyExpenseRecordRepository dailyExpenseRecordRepository;
 
     @Autowired
+    private WarehouseLedgerRepository warehouseLedgerRepository;
+
+    @Autowired
     private ProductCostService productCostService;
 
     @PostMapping
+    @Transactional
     public DailySaleRecord createRecord(@RequestBody DailySaleRecord record) {
         // Calculate volume_sold based on product_code and quantity
         if (record.getProductCode() != null && record.getQuantity() != null) {
@@ -62,7 +68,59 @@ public class DailySaleController {
             );
             record.setVolumeSold(volumeSold);
         }
-        return repository.save(record);
+
+        // Save the sales record
+        DailySaleRecord savedRecord = repository.save(record);
+
+        // Deduct stock from salesman's warehouse inventory and create ledger entry
+        if (record.getSalesmanName() != null && record.getProductCode() != null && record.getQuantity() != null) {
+            try {
+                System.out.println(">>> Creating warehouse ledger entry for sale:");
+                System.out.println("    Salesman: " + record.getSalesmanName());
+                System.out.println("    Product: " + record.getProductCode());
+                System.out.println("    Quantity: " + record.getQuantity());
+
+                // Get current stock for this salesman and product from ledger
+                Long currentStock = warehouseLedgerRepository.getStockWithSalesman(
+                    record.getSalesmanName(),
+                    record.getProductCode()
+                );
+
+                int qtyBefore = (currentStock != null) ? currentStock.intValue() : 0;
+                int qtySold = record.getQuantity();
+                int qtyAfter = qtyBefore - qtySold;
+
+                System.out.println("    Stock Before: " + qtyBefore);
+                System.out.println("    Stock After: " + qtyAfter);
+
+                // Create warehouse ledger entry for the sale (negative quantity)
+                WarehouseLedger ledger = new WarehouseLedger();
+                ledger.setProductCode(record.getProductCode());
+                ledger.setSalesmanAlias(record.getSalesmanName());
+                ledger.setTxnType(WarehouseLedger.TransactionType.SOLD_BY_SALESMAN);
+                ledger.setDeltaQty(-qtySold); // Negative because stock is being sold/reduced
+                ledger.setQtyBefore(qtyBefore);
+                ledger.setQtyAfter(qtyAfter);
+                ledger.setRemarks("Sold by salesman " + record.getSalesmanName() + " on " +
+                    java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy").format(record.getSaleDate()));
+                ledger.setCreatedBy("system");
+
+                warehouseLedgerRepository.save(ledger);
+                System.out.println(">>> Warehouse ledger entry created successfully!");
+
+            } catch (Exception e) {
+                // Log the error but don't fail the sale record creation
+                System.err.println("!!! ERROR: Failed to update warehouse ledger for sale: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println(">>> Skipping warehouse ledger update - missing required fields:");
+            System.out.println("    salesmanName: " + record.getSalesmanName());
+            System.out.println("    productCode: " + record.getProductCode());
+            System.out.println("    quantity: " + record.getQuantity());
+        }
+
+        return savedRecord;
     }
 
     @GetMapping
@@ -338,6 +396,50 @@ public class DailySaleController {
 
         List<SalesmanExpense> savedExpenses = salesmanExpenseRepository.saveAll(expenseEntities);
         List<DailySaleRecord> savedSales = repository.saveAll(new ArrayList<>(saleEntities));
+
+        // Deduct stock from warehouse for each sale
+        for (DailySaleRecord sale : savedSales) {
+            if (sale.getSalesmanName() != null && sale.getProductCode() != null && sale.getQuantity() != null) {
+                try {
+                    System.out.println(">>> Creating warehouse ledger entry for bulk sale:");
+                    System.out.println("    Salesman: " + sale.getSalesmanName());
+                    System.out.println("    Product: " + sale.getProductCode());
+                    System.out.println("    Quantity: " + sale.getQuantity());
+
+                    // Get current stock for this salesman and product from ledger
+                    Long currentStock = warehouseLedgerRepository.getStockWithSalesman(
+                        sale.getSalesmanName(),
+                        sale.getProductCode()
+                    );
+
+                    int qtyBefore = (currentStock != null) ? currentStock.intValue() : 0;
+                    int qtySold = sale.getQuantity();
+                    int qtyAfter = qtyBefore - qtySold;
+
+                    System.out.println("    Stock Before: " + qtyBefore);
+                    System.out.println("    Stock After: " + qtyAfter);
+
+                    // Create warehouse ledger entry for the sale (negative quantity)
+                    WarehouseLedger ledger = new WarehouseLedger();
+                    ledger.setProductCode(sale.getProductCode());
+                    ledger.setSalesmanAlias(sale.getSalesmanName());
+                    ledger.setTxnType(WarehouseLedger.TransactionType.SOLD_BY_SALESMAN);
+                    ledger.setDeltaQty(-qtySold); // Negative because stock is being sold/reduced
+                    ledger.setQtyBefore(qtyBefore);
+                    ledger.setQtyAfter(qtyAfter);
+                    ledger.setRemarks("Sold by salesman " + sale.getSalesmanName() + " on " +
+                        java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy").format(sale.getSaleDate()));
+                    ledger.setCreatedBy("system");
+
+                    warehouseLedgerRepository.save(ledger);
+                    System.out.println(">>> Warehouse ledger entry created successfully!");
+
+                } catch (Exception e) {
+                    System.err.println("!!! ERROR: Failed to update warehouse ledger for sale: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
 
         // Populate daily_expense_record if expenses exist
         if (!expenseEntities.isEmpty()) {

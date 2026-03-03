@@ -11,4 +11,6 @@ public interface SalesmanRepository extends JpaRepository<Salesman, Long> {
     List<Salesman> findByFirstNameIgnoreCaseAndLastNameIgnoreCase(String firstName, String lastName);
 
     java.util.Optional<Salesman> findByAliasIgnoreCase(String alias);
+
+    boolean existsByAlias(String alias);
 }

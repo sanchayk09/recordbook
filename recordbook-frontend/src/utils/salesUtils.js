@@ -1,6 +1,6 @@
-export const filterSales = (sales = [], { variant = '', size = '' } = {}) => {
+export const filterSales = (sales = [], { productCode = '', size = '' } = {}) => {
   let result = sales;
-  if (variant) result = result.filter(s => s.variant === variant);
+  if (productCode) result = result.filter(s => s.productCode === productCode);
   if (size) result = result.filter(s => s.size === size);
   return result;
 };

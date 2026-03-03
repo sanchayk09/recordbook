@@ -12,7 +12,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
-  const [variants, setVariants] = useState([]);
+  const [productCodes, setProductCodes] = useState([]);
   const [sizes, setSizes] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [sortBy, setSortBy] = useState('');
@@ -25,7 +25,7 @@ const AdminDashboard = () => {
     customerName: '',
     mobileNumber: '',
     productName: 'Phenyl',
-    variant: '',
+    productCode: '',
     size: '',
     quantity: '',
     mfgCost: '',
@@ -55,11 +55,11 @@ const AdminDashboard = () => {
       setAllSales(response.data);
       setSales(response.data);
       
-      // Extract unique variants and sizes
-      const uniqueVariants = [...new Set(response.data.map(sale => sale.variant))].filter(Boolean);
+      // Extract unique productCodes and sizes
+      const uniqueProductCodes = [...new Set(response.data.map(sale => sale.productCode))].filter(Boolean);
       const uniqueSizes = [...new Set(response.data.map(sale => sale.size))].filter(Boolean);
       
-      setVariants(uniqueVariants.sort());
+      setProductCodes(uniqueProductCodes.sort());
       setSizes(uniqueSizes.sort());
       setLoading(false);
     } catch (err) {
@@ -69,8 +69,8 @@ const AdminDashboard = () => {
     }
   };
 
-  const applyFilters = (variant = selectedVariant, size = selectedSize) => {
-    const filtered = filterSales(allSales, { variant, size });
+  const applyFilters = (productCode = selectedVariant, size = selectedSize) => {
+    const filtered = filterSales(allSales, { productCode, size });
     setSales(filtered);
   };
 
@@ -121,7 +121,7 @@ const AdminDashboard = () => {
       customerName: sale.customerName,
       mobileNumber: sale.mobileNumber || '',
       productName: sale.productName,
-      variant: sale.variant,
+      productCode: sale.productCode,
       size: sale.size,
       quantity: sale.quantity,
       mfgCost: sale.mfgCost,
@@ -140,7 +140,7 @@ const AdminDashboard = () => {
       customerName: '',
       mobileNumber: '',
       productName: 'Phenyl',
-      variant: '',
+      productCode: '',
       size: '',
       quantity: '',
       mfgCost: '',
@@ -178,7 +178,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     
     // Validation
-    if (!formData.saleDate || !formData.customerName || !formData.variant || !formData.size) {
+    if (!formData.saleDate || !formData.customerName || !formData.productCode || !formData.size) {
       notifyError('Please fill in all required fields');
       return;
     }
@@ -322,20 +322,20 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="form-control">
-                  <label>Variant *</label>
+                  <label>Product Code *</label>
                   <select
-                    name="variant"
-                    value={formData.variant}
+                    name="productCode"
+                    value={formData.productCode}
                     onChange={(e) => {
                       setFormData(prev => ({
                         ...prev,
-                        variant: e.target.value
+                        productCode: e.target.value
                       }));
                     }}
                     required
                     className="select-field"
                   >
-                    <option value="">Select Variant</option>
+                    <option value="">Select Product Code</option>
                     <option value="Lemon">Lemon</option>
                     <option value="Neem">Neem</option>
                   </select>
@@ -445,12 +445,12 @@ const AdminDashboard = () => {
           {/* Filter Section */}
           <div className="filter-bar">
             <div className="form-control">
-              <label>Variant:</label>
+              <label>Product Code:</label>
               <select value={selectedVariant} onChange={handleVariantChange} className="select-field">
-                <option value="">All Variants</option>
-                {variants.map((variant) => (
-                  <option key={variant} value={variant}>
-                    {variant}
+                <option value="">All Product Codes</option>
+                {productCodes.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
                   </option>
                 ))}
               </select>
@@ -496,7 +496,7 @@ const AdminDashboard = () => {
                 <tr>
                   <th>Date</th>
                   <th>Customer</th>
-                  <th>Variant</th>
+                  <th>Product Code</th>
                   <th>Size</th>
                   <th>Quantity</th>
                   <th>Rate</th>
@@ -509,7 +509,7 @@ const AdminDashboard = () => {
                   <tr key={sale.recordId}>
                     <td>{sale.saleDate}</td>
                     <td>{sale.customerName}</td>
-                    <td>{sale.variant}</td>
+                    <td>{sale.productCode}</td>
                     <td>{sale.size}</td>
                     <td>₹{sale.quantity}</td>
                     <td>₹{sale.sellingPrice}</td>

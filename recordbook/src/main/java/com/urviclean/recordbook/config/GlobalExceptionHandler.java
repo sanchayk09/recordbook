@@ -77,14 +77,14 @@ public class GlobalExceptionHandler {
         logger.warn("Business logic error: {}", ex.getMessage());
 
         ApiErrorResponse errorResponse = new ApiErrorResponse(
-            422,
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
             ex.getErrorCode(),
             ex.getMessage(),
             ex.getDetails()
         );
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.valueOf(422));
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     /**

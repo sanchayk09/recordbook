@@ -28,6 +28,7 @@ const Header = () => {
             <Link to="/daily-summary-report" className="dropdown-item">Daily Summary Report</Link>
           </div>
         </div>
+        <Link to="/warehouse" className="nav-button warehouse">🏭 Warehouse</Link>
       </div>
     </nav>
   );

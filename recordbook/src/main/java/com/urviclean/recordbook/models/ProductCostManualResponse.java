@@ -9,6 +9,9 @@ public class ProductCostManualResponse {
     private String productName;
     private String productCode;
     private BigDecimal cost;
+    private String variant;
+    private String metric;
+    private BigDecimal metricQuantity;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -17,11 +20,16 @@ public class ProductCostManualResponse {
     }
 
     public ProductCostManualResponse(Long pid, String productName, String productCode,
-                                     BigDecimal cost, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                                     BigDecimal cost, String variant, String metric,
+                                     BigDecimal metricQuantity, LocalDateTime createdAt,
+                                     LocalDateTime updatedAt) {
         this.pid = pid;
         this.productName = productName;
         this.productCode = productCode;
         this.cost = cost;
+        this.variant = variant;
+        this.metric = metric;
+        this.metricQuantity = metricQuantity;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -33,6 +41,9 @@ public class ProductCostManualResponse {
                 entity.getProductName(),
                 entity.getProductCode(),
                 entity.getCost(),
+                entity.getVariant(),
+                entity.getMetric(),
+                entity.getMetricQuantity(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -71,6 +82,30 @@ public class ProductCostManualResponse {
         this.cost = cost;
     }
 
+    public String getVariant() {
+        return variant;
+    }
+
+    public void setVariant(String variant) {
+        this.variant = variant;
+    }
+
+    public String getMetric() {
+        return metric;
+    }
+
+    public void setMetric(String metric) {
+        this.metric = metric;
+    }
+
+    public BigDecimal getMetricQuantity() {
+        return metricQuantity;
+    }
+
+    public void setMetricQuantity(BigDecimal metricQuantity) {
+        this.metricQuantity = metricQuantity;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -94,6 +129,9 @@ public class ProductCostManualResponse {
                 ", productName='" + productName + '\'' +
                 ", productCode='" + productCode + '\'' +
                 ", cost=" + cost +
+                ", variant='" + variant + '\'' +
+                ", metric='" + metric + '\'' +
+                ", metricQuantity=" + metricQuantity +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';

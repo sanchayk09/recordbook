@@ -18,7 +18,8 @@ public class Product {
     @Column(name = "product_name")
     private String productName;
 
-    private String variant;
+    @Column(name = "product_code")
+    private String productCode;
 
     private String size;
 
@@ -64,12 +65,12 @@ public class Product {
         this.productName = productName;
     }
 
-    public String getVariant() {
-        return variant;
+    public String getProductCode() {
+        return productCode;
     }
 
-    public void setVariant(String variant) {
-        this.variant = variant;
+    public void setProductCode(String productCode) {
+        this.productCode = productCode;
     }
 
     public String getSize() {
