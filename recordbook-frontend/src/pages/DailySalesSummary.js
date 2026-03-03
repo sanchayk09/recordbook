@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { salesAPI, salesmanAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
@@ -50,7 +50,7 @@ const DailySalesSummary = () => {
     return Array.from(products).sort();
   }, [salesRecords]);
 
-  const getFilteredRecords = () => {
+  const getFilteredRecords = useCallback(() => {
     let filtered = salesRecords;
 
     // Apply date filter
@@ -81,12 +81,11 @@ const DailySalesSummary = () => {
     }
 
     return filtered;
-  };
+  }, [salesRecords, filterType, selectedDate, startDate, endDate, selectedMonth, selectedProduct]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const filteredRecords = useMemo(() => {
     return getFilteredRecords();
-  }, [salesRecords, filterType, selectedDate, startDate, endDate, selectedMonth, selectedProduct]);
+  }, [getFilteredRecords]);
 
   const sortedRecords = useMemo(() => {
     const records = [...filteredRecords];

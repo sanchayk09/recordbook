@@ -77,12 +77,14 @@ public class GlobalExceptionHandler {
         logger.warn("Business logic error: {}", ex.getMessage());
 
         ApiErrorResponse errorResponse = new ApiErrorResponse(
+            HttpStatus.UNPROCESSABLE_CONTENT.value(),
             ex.getErrorCode(),
             ex.getMessage(),
             ex.getDetails()
         );
         errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
 
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_CONTENT);
     }
 
     /**

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import { ToastContainer } from 'react-toastify';
 import AboutUs from './pages/AboutUs';
@@ -12,7 +12,6 @@ import ProductCostManager from './pages/ProductCostManager';
 import WarehouseDashboard from './pages/WarehouseDashboard';
 
 function AppContent() {
-  const location = useLocation();
 
   return (
     <>

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Sector, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { productSalesSummaryAPI, salesmanAPI, expenseAPI, summaryAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
-import { getTodayDate, getCurrentMonth } from '../utils/dateUtils';
+import { getTodayDate } from '../utils/dateUtils';
 import '../styles/ProductSalesSummary.css';
 
 const ProductSalesSummary = () => {
@@ -24,12 +24,7 @@ const ProductSalesSummary = () => {
   const [activeQuantitySliceIndex, setActiveQuantitySliceIndex] = useState(null);
   const [activeRevenueSliceIndex, setActiveRevenueSliceIndex] = useState(null);
 
-  useEffect(() => {
-    fetchProductSales();
-    fetchSalesmen();
-  }, [filterType, selectedDate, startDate, endDate, selectedMonth]);
-
-  const fetchProductSales = async () => {
+  const fetchProductSales = useCallback(async () => {
     setLoading(true);
     try {
       let response;
@@ -65,9 +60,9 @@ const ProductSalesSummary = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterType, selectedDate, startDate, endDate, selectedMonth]);
 
-  const fetchSalesmen = async () => {
+  const fetchSalesmen = useCallback(async () => {
     try {
       const res = await salesmanAPI.getAliases();
       setSalesmen(Array.isArray(res.data) ? res.data : []);
@@ -75,7 +70,12 @@ const ProductSalesSummary = () => {
     } catch (e) {
       setSalesmen([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchProductSales();
+    fetchSalesmen();
+  }, [fetchProductSales, fetchSalesmen]);
 
   const fetchExpenseDetail = async () => {
     if (!selectedSalesman || !expenseDate) return;
@@ -116,17 +116,6 @@ const ProductSalesSummary = () => {
       setSubmitLoading(false);
     }
   };
-
-  const totals = useMemo(() => {
-    return productSales.reduce(
-      (acc, record) => {
-        acc.totalQuantity += Number(record.totalQuantity) || 0;
-        acc.productCount += 1;
-        return acc;
-      },
-      { totalQuantity: 0, productCount: 0 }
-    );
-  }, [productSales]);
 
   const renderActiveSlice = (props) => {
     const RADIAN = Math.PI / 180;

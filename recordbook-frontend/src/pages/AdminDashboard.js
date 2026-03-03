@@ -41,15 +41,6 @@ const AdminDashboard = () => {
 
   const fetchSales = async () => {
     try {
-      // basic validation
-      if (formData.mobileNumber && !/^[0-9]{7,15}$/.test(formData.mobileNumber)) {
-        notifyError('Please enter a valid mobile number');
-        return;
-      }
-      if (formData.quantity && isNaN(Number(formData.quantity))) {
-        notifyError('Quantity must be a number');
-        return;
-      }
       setLoading(true);
       const response = await salesAPI.getAllSales();
       setAllSales(response.data);

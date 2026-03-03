@@ -12,14 +12,6 @@ const WarehouseDashboard = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Form states
-  const [issueForm, setIssueForm] = useState({
-    productCode: '',
-    salesmanAlias: '',
-    quantity: '',
-    remarks: '',
-  });
-
   // New states for improved Issue Stock flow
   const [selectedSalesmanForIssue, setSelectedSalesmanForIssue] = useState('');
   const [showIssueModal, setShowIssueModal] = useState(false);
@@ -31,14 +23,6 @@ const WarehouseDashboard = () => {
   const [selectedProductCodes, setSelectedProductCodes] = useState({}); // { productCode: quantity }
   const [availableProductNames, setAvailableProductNames] = useState([]); // Unique product names
   const [productCodesByName, setProductCodesByName] = useState({}); // { productName: [codes] }
-  const [allProductQuantities, setAllProductQuantities] = useState({}); // { productCode: quantity } for all products
-
-  const [returnForm, setReturnForm] = useState({
-    productCode: '',
-    salesmanAlias: '',
-    quantity: '',
-    remarks: '',
-  });
 
   // New states for improved Return Stock flow
   const [selectedSalesmanForReturn, setSelectedSalesmanForReturn] = useState('');
@@ -68,7 +52,12 @@ const WarehouseDashboard = () => {
       const response = await warehouseAPI.getAllInventory();
       setInventory(response.data);
     } catch (error) {
-      notifyError('Failed to load inventory');
+      console.error('Failed to load inventory:', error.response?.status, error.response?.data);
+      if (error.response?.status === 500) {
+        notifyError('Backend error loading inventory. Please check backend server logs.');
+      } else {
+        notifyError('Failed to load inventory');
+      }
     } finally {
       setLoading(false);
     }
@@ -80,7 +69,12 @@ const WarehouseDashboard = () => {
       const response = await warehouseAPI.getAllLedger();
       setLedger(response.data);
     } catch (error) {
-      notifyError('Failed to load ledger');
+      console.error('Failed to load ledger:', error.response?.status, error.response?.data);
+      if (error.response?.status === 500) {
+        notifyError('Backend error loading ledger. Please check backend server logs.');
+      } else {
+        notifyError('Failed to load ledger');
+      }
     } finally {
       setLoading(false);
     }
@@ -136,7 +130,10 @@ const WarehouseDashboard = () => {
 
       setSalesmen(mappedSalesmen);
     } catch (error) {
-      console.error('Failed to load salesmen');
+      console.error('Failed to load salesmen:', error.response?.status, error.response?.data);
+      if (error.response?.status === 500) {
+        notifyError('Backend error loading salesmen. Please check backend server logs.');
+      }
       setSalesmen([]);
     }
   };
@@ -181,7 +178,10 @@ const WarehouseDashboard = () => {
       setAvailableProductNames(names.sort());
       setProductCodesByName(codesByName);
     } catch (error) {
-      console.error('Failed to load products');
+      console.error('Failed to load products:', error.response?.status, error.response?.data);
+      if (error.response?.status === 500) {
+        notifyError('Backend error loading products. Please check backend server logs.');
+      }
       setProducts([]);
     }
   };
@@ -192,34 +192,11 @@ const WarehouseDashboard = () => {
       const response = await warehouseAPI.getSalesmenStockSummary();
       setSalesmenStock(response.data);
     } catch (error) {
-      console.error('Failed to load salesmen stock summary');
+      console.error('Failed to load salesmen stock summary:', error.response?.status, error.response?.data);
+      if (error.response?.status === 500) {
+        notifyError('Backend error loading salesmen stock. Please check backend server logs.');
+      }
       setSalesmenStock([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Issue Stock
-  const handleIssueStock = async (e) => {
-    e.preventDefault();
-    if (!issueForm.productCode || !issueForm.salesmanAlias || !issueForm.quantity) {
-      notifyError('Please fill all required fields');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await warehouseAPI.issueStock({
-        ...issueForm,
-        quantity: parseInt(issueForm.quantity),
-      });
-      notifySuccess(`Stock issued successfully to ${issueForm.salesmanAlias}`);
-      setIssueForm({ productCode: '', salesmanAlias: '', quantity: '', remarks: '' });
-      loadInventory();
-      loadLedger();
-      loadSalesmenStock();
-    } catch (error) {
-      notifyError(error.response?.data?.message || 'Failed to issue stock');
     } finally {
       setLoading(false);
     }
@@ -241,24 +218,12 @@ const WarehouseDashboard = () => {
     if (productName && productCodesByName[productName]) {
       const initialQuantities = {};
       productCodesByName[productName].forEach(product => {
-        initialQuantities[product.code] = allProductQuantities[product.code] || '';
+        initialQuantities[product.code] = '';
       });
       setSelectedProductCodes(initialQuantities);
     } else {
       setSelectedProductCodes({});
     }
-  };
-
-  const handleProductCodeToggle = (productCode) => {
-    const updatedCodes = { ...selectedProductCodes };
-    if (productCode in updatedCodes) {
-      // If key exists, delete it (uncheck)
-      delete updatedCodes[productCode];
-    } else {
-      // If key doesn't exist, add it with empty string (check)
-      updatedCodes[productCode] = '';
-    }
-    setSelectedProductCodes(updatedCodes);
   };
 
   const handleProductCodeQuantityChange = (productCode, quantity) => {
@@ -345,32 +310,6 @@ const WarehouseDashboard = () => {
       loadLedger();
     } catch (error) {
       notifyError('Failed to process issue requests');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Return Stock
-  const handleReturnStock = async (e) => {
-    e.preventDefault();
-    if (!returnForm.productCode || !returnForm.salesmanAlias || !returnForm.quantity) {
-      notifyError('Please fill all required fields');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await warehouseAPI.returnStock({
-        ...returnForm,
-        quantity: parseInt(returnForm.quantity),
-      });
-      notifySuccess(`Stock returned successfully from ${returnForm.salesmanAlias}`);
-      setReturnForm({ productCode: '', salesmanAlias: '', quantity: '', remarks: '' });
-      loadInventory();
-      loadLedger();
-      loadSalesmenStock();
-    } catch (error) {
-      notifyError(error.response?.data?.message || 'Failed to return stock');
     } finally {
       setLoading(false);
     }
@@ -534,10 +473,6 @@ const WarehouseDashboard = () => {
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
-  };
-
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString();
   };
 
 

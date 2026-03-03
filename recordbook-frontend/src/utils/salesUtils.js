@@ -21,4 +21,6 @@ export const sortSales = (sales = [], type = 'date', order = 'asc') => {
   return sorted;
 };
 
-export default { filterSales, sortSales };
+const salesUtils = { filterSales, sortSales };
+
+export default salesUtils;

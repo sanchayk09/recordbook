@@ -76,7 +76,7 @@ export const isValidYYYYMMDD = (dateStr) => {
   return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
 };
 
-export default {
+const dateUtils = {
   getTodayDate,
   getCurrentMonth,
   convertFromDDMMYYYY,
@@ -84,3 +84,5 @@ export default {
   formatDateDisplay,
   isValidYYYYMMDD
 };
+
+export default dateUtils;
