@@ -20,12 +20,10 @@ import com.urviclean.recordbook.models.SalesmanExpense;
 import com.urviclean.recordbook.models.SalesmanLedger;
 import com.urviclean.recordbook.models.SalesmanTxnType;
 import com.urviclean.recordbook.models.SalesmanStockSummary;
-import com.urviclean.recordbook.models.WarehouseLedger;
 import com.urviclean.recordbook.repositories.DailySaleRecordRepository;
 import com.urviclean.recordbook.repositories.SalesmanExpenseRepository;
 import com.urviclean.recordbook.repositories.SalesmanRepository;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
-import com.urviclean.recordbook.repositories.WarehouseLedgerRepository;
 import com.urviclean.recordbook.repositories.SalesmanLedgerRepository;
 import com.urviclean.recordbook.repositories.SalesmanStockSummaryRepository;
 import com.urviclean.recordbook.exception.InvalidInputException;
@@ -63,9 +61,6 @@ public class DailySaleController {
 
     @Autowired
     private DailyExpenseRecordRepository dailyExpenseRecordRepository;
-
-    @Autowired
-    private WarehouseLedgerRepository warehouseLedgerRepository;
 
     @Autowired
     private SalesmanLedgerRepository salesmanLedgerRepository;
@@ -476,45 +471,49 @@ public class DailySaleController {
         List<SalesmanExpense> savedExpenses = salesmanExpenseRepository.saveAll(expenseEntities);
         List<DailySaleRecord> savedSales = repository.saveAll(new ArrayList<>(saleEntities));
 
-        // Deduct stock from warehouse for each sale
+        // Deduct stock from salesman for each sale (SALE affects ONLY salesman stock)
+        java.time.format.DateTimeFormatter saleDateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy");
         for (DailySaleRecord sale : savedSales) {
             if (sale.getSalesmanName() != null && sale.getProductCode() != null && sale.getQuantity() != null) {
                 try {
-                    System.out.println(">>> Creating warehouse ledger entry for bulk sale:");
+                    System.out.println(">>> Creating salesman ledger entry for bulk sale:");
                     System.out.println("    Salesman: " + sale.getSalesmanName());
                     System.out.println("    Product: " + sale.getProductCode());
                     System.out.println("    Quantity: " + sale.getQuantity());
 
-                    // Get current stock for this salesman and product from ledger
-                    Long currentStock = warehouseLedgerRepository.getStockWithSalesman(
-                        sale.getSalesmanName(),
-                        sale.getProductCode()
-                    );
+                    SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
+                        .findBySalesmanAliasAndProductCode(sale.getSalesmanName(), sale.getProductCode())
+                        .orElse(new SalesmanStockSummary());
 
-                    int qtyBefore = (currentStock != null) ? currentStock.intValue() : 0;
+                    int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
                     int qtySold = sale.getQuantity();
-                    int qtyAfter = qtyBefore - qtySold;
+                    int salesmanStockAfter = salesmanStockBefore - qtySold;
 
-                    System.out.println("    Stock Before: " + qtyBefore);
-                    System.out.println("    Stock After: " + qtyAfter);
+                    System.out.println("    Salesman Stock Before: " + salesmanStockBefore);
+                    System.out.println("    Salesman Stock After: " + salesmanStockAfter);
 
-                    // Create warehouse ledger entry for the sale (negative quantity)
-                    WarehouseLedger ledger = new WarehouseLedger();
-                    ledger.setProductCode(sale.getProductCode());
-                    ledger.setSalesmanAlias(sale.getSalesmanName());
-                    ledger.setTxnType(WarehouseLedger.TransactionType.SOLD_BY_SALESMAN);
-                    ledger.setDeltaQty(-qtySold); // Negative because stock is being sold/reduced
-                    ledger.setQtyBefore(qtyBefore);
-                    ledger.setQtyAfter(qtyAfter);
-                    ledger.setRemarks("Sold by salesman " + sale.getSalesmanName() + " on " +
-                        java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy").format(sale.getSaleDate()));
-                    ledger.setCreatedBy("system");
+                    // Update salesman_stock_summary (decrement by sold quantity)
+                    salesmanSummary.setSalesmanAlias(sale.getSalesmanName());
+                    salesmanSummary.setProductCode(sale.getProductCode());
+                    salesmanSummary.setCurrentStock(salesmanStockAfter);
+                    salesmanSummary.setLastUpdated(LocalDateTime.now());
+                    salesmanStockSummaryRepository.save(salesmanSummary);
 
-                    warehouseLedgerRepository.save(ledger);
-                    System.out.println(">>> Warehouse ledger entry created successfully!");
+                    // Create salesman_ledger entry for SOLD (negative quantity)
+                    SalesmanLedger salesmanLedger = new SalesmanLedger(
+                        sale.getSalesmanName(),
+                        sale.getProductCode(),
+                        SalesmanTxnType.SOLD,
+                        -qtySold,
+                        "Sold via sales-expense bulk entry on " +
+                            saleDateFormatter.format(sale.getSaleDate()),
+                        "system"
+                    );
+                    salesmanLedgerRepository.save(salesmanLedger);
+                    System.out.println(">>> Salesman ledger entry created successfully!");
 
                 } catch (Exception e) {
-                    System.err.println("!!! ERROR: Failed to update warehouse ledger for sale: " + e.getMessage());
+                    System.err.println("!!! ERROR: Failed to update salesman ledger for sale: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
