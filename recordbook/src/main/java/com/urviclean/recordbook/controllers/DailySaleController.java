@@ -17,18 +17,30 @@ import com.urviclean.recordbook.models.DailySaleRecord;
 import com.urviclean.recordbook.models.ExpenseCategory;
 import com.urviclean.recordbook.models.Salesman;
 import com.urviclean.recordbook.models.SalesmanExpense;
+import com.urviclean.recordbook.models.SalesmanLedger;
+import com.urviclean.recordbook.models.SalesmanTxnType;
+import com.urviclean.recordbook.models.SalesmanStockSummary;
+import com.urviclean.recordbook.models.WarehouseLedger;
 import com.urviclean.recordbook.repositories.DailySaleRecordRepository;
 import com.urviclean.recordbook.repositories.SalesmanExpenseRepository;
 import com.urviclean.recordbook.repositories.SalesmanRepository;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
 import com.urviclean.recordbook.repositories.WarehouseLedgerRepository;
-import com.urviclean.recordbook.models.WarehouseLedger;
+import com.urviclean.recordbook.repositories.SalesmanLedgerRepository;
+import com.urviclean.recordbook.repositories.SalesmanStockSummaryRepository;
+import com.urviclean.recordbook.exception.InvalidInputException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashSet;
@@ -37,6 +49,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/sales")
 @CrossOrigin(origins = "http://localhost:3000")
+@Tag(name = "Daily Sales", description = "APIs for managing daily sales records, expenses, and product sales summaries")
 public class DailySaleController {
 
     @Autowired
@@ -55,10 +68,22 @@ public class DailySaleController {
     private WarehouseLedgerRepository warehouseLedgerRepository;
 
     @Autowired
+    private SalesmanLedgerRepository salesmanLedgerRepository;
+
+    @Autowired
+    private SalesmanStockSummaryRepository salesmanStockSummaryRepository;
+
+    @Autowired
     private ProductCostService productCostService;
 
     @PostMapping
     @Transactional
+    @Operation(summary = "Create a new daily sale record",
+               description = "Creates a new daily sale record and updates salesman ledger (NOT warehouse)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Sale record created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
     public DailySaleRecord createRecord(@RequestBody DailySaleRecord record) {
         // Calculate volume_sold based on product_code and quantity
         if (record.getProductCode() != null && record.getQuantity() != null) {
@@ -72,49 +97,65 @@ public class DailySaleController {
         // Save the sales record
         DailySaleRecord savedRecord = repository.save(record);
 
-        // Deduct stock from salesman's warehouse inventory and create ledger entry
+        // CRITICAL: When a sale is recorded:
+        // 1. Validate salesman stock exists and sufficient qty in salesman_stock_summary
+        // 2. Update salesman_stock_summary with -qty
+        // 3. Insert salesman_ledger with SOLD transaction
+        // DO NOT update warehouse_ledger (no SOLD_BY_SALESMAN entry anymore)
+
         if (record.getSalesmanName() != null && record.getProductCode() != null && record.getQuantity() != null) {
             try {
-                System.out.println(">>> Creating warehouse ledger entry for sale:");
+                System.out.println(">>> Creating salesman ledger entry for sale:");
                 System.out.println("    Salesman: " + record.getSalesmanName());
                 System.out.println("    Product: " + record.getProductCode());
                 System.out.println("    Quantity: " + record.getQuantity());
 
-                // Get current stock for this salesman and product from ledger
-                Long currentStock = warehouseLedgerRepository.getStockWithSalesman(
-                    record.getSalesmanName(),
-                    record.getProductCode()
-                );
+                // Get current salesman stock for this product
+                SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
+                    .findBySalesmanAliasAndProductCode(record.getSalesmanName(), record.getProductCode())
+                    .orElse(new SalesmanStockSummary());
 
-                int qtyBefore = (currentStock != null) ? currentStock.intValue() : 0;
+                int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
                 int qtySold = record.getQuantity();
-                int qtyAfter = qtyBefore - qtySold;
+                int salesmanStockAfter = salesmanStockBefore - qtySold;
 
-                System.out.println("    Stock Before: " + qtyBefore);
-                System.out.println("    Stock After: " + qtyAfter);
+                System.out.println("    Salesman Stock Before: " + salesmanStockBefore);
+                System.out.println("    Salesman Stock After: " + salesmanStockAfter);
 
-                // Create warehouse ledger entry for the sale (negative quantity)
-                WarehouseLedger ledger = new WarehouseLedger();
-                ledger.setProductCode(record.getProductCode());
-                ledger.setSalesmanAlias(record.getSalesmanName());
-                ledger.setTxnType(WarehouseLedger.TransactionType.SOLD_BY_SALESMAN);
-                ledger.setDeltaQty(-qtySold); // Negative because stock is being sold/reduced
-                ledger.setQtyBefore(qtyBefore);
-                ledger.setQtyAfter(qtyAfter);
-                ledger.setRemarks("Sold by salesman " + record.getSalesmanName() + " on " +
-                    java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy").format(record.getSaleDate()));
-                ledger.setCreatedBy("system");
+                // VALIDATION: Check salesman has enough stock
+                if (salesmanStockAfter < 0) {
+                    throw new InvalidInputException(
+                        "Insufficient stock with salesman. Available: " + salesmanStockBefore + ", Trying to sell: " + qtySold,
+                        "INSUFFICIENT_SALESMAN_STOCK"
+                    );
+                }
 
-                warehouseLedgerRepository.save(ledger);
-                System.out.println(">>> Warehouse ledger entry created successfully!");
+                // Update salesman_stock_summary (decrement by sold quantity)
+                salesmanSummary.setSalesmanAlias(record.getSalesmanName());
+                salesmanSummary.setProductCode(record.getProductCode());
+                salesmanSummary.setCurrentStock(salesmanStockAfter);
+                salesmanSummary.setLastUpdated(LocalDateTime.now());
+                salesmanStockSummaryRepository.save(salesmanSummary);
+
+                // Create salesman_ledger entry for SOLD (negative quantity)
+                SalesmanLedger salesmanLedger = new SalesmanLedger(
+                    record.getSalesmanName(),
+                    record.getProductCode(),
+                    SalesmanTxnType.SOLD,
+                    -qtySold,  // Negative because sale reduces salesman stock
+                    "Sold via daily_sale_record id=" + savedRecord.getId(),
+                    "system"
+                );
+                salesmanLedgerRepository.save(salesmanLedger);
+                System.out.println(">>> Salesman ledger entry created successfully!");
 
             } catch (Exception e) {
                 // Log the error but don't fail the sale record creation
-                System.err.println("!!! ERROR: Failed to update warehouse ledger for sale: " + e.getMessage());
+                System.err.println("!!! ERROR: Failed to update salesman ledger for sale: " + e.getMessage());
                 e.printStackTrace();
             }
         } else {
-            System.out.println(">>> Skipping warehouse ledger update - missing required fields:");
+            System.out.println(">>> Skipping salesman ledger update - missing required fields:");
             System.out.println("    salesmanName: " + record.getSalesmanName());
             System.out.println("    productCode: " + record.getProductCode());
             System.out.println("    quantity: " + record.getQuantity());
@@ -124,12 +165,23 @@ public class DailySaleController {
     }
 
     @GetMapping
+    @Operation(summary = "Get all daily sale records",
+               description = "Retrieves all daily sale records from the database")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved all sale records")
     public List<DailySaleRecord> getAllRecords() {
         return repository.findAll();
     }
 
     @PutMapping("/{id}")
-    public DailySaleRecord updateRecord(@PathVariable Long id, @RequestBody DailySaleRecord newDetails) {
+    @Operation(summary = "Update a daily sale record",
+               description = "Updates an existing daily sale record by ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Sale record updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Record not found")
+    })
+    public DailySaleRecord updateRecord(
+            @Parameter(description = "ID of the record to update", required = true) @PathVariable Long id,
+            @RequestBody DailySaleRecord newDetails) {
         return repository.findById(id)
                 .map(record -> {
                     if (newDetails.getSlNo() != null) {
@@ -193,27 +245,39 @@ public class DailySaleController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteRecord(@PathVariable Long id) {
+    @Operation(summary = "Delete a daily sale record",
+               description = "Deletes a daily sale record by ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Record deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Record not found")
+    })
+    public void deleteRecord(@Parameter(description = "ID of the record to delete", required = true) @PathVariable Long id) {
         repository.deleteById(id);
     }
 
     // 1. Filter by Product Code: /api/sales/filter/product-code?code=ABC123
     @GetMapping("/filter/product-code")
-    public List<DailySaleRecord> getByProductCode(@RequestParam String code) {
+    @Operation(summary = "Filter sales by product code", description = "Retrieves all sales for a specific product")
+    public List<DailySaleRecord> getByProductCode(
+            @Parameter(description = "Product code to filter by", required = true) @RequestParam String code) {
         return repository.findByProductCode(code);
     }
 
     // 2. Filter by Quantity: /api/sales/filter/quantity?value=5
     @GetMapping("/filter/quantity")
-    public List<DailySaleRecord> getByQuantity(@RequestParam Integer value) {
+    @Operation(summary = "Filter sales by quantity", description = "Retrieves all sales with a specific quantity")
+    public List<DailySaleRecord> getByQuantity(
+            @Parameter(description = "Quantity value to filter by", required = true) @RequestParam Integer value) {
         return repository.findByQuantity(value);
     }
 
     // 3. Filter by Product Code AND Quantity: /api/sales/filter/search?code=ABC123&quantity=10
     @GetMapping("/filter/search")
+    @Operation(summary = "Search sales by product code and quantity",
+               description = "Retrieves sales matching both product code and quantity")
     public List<DailySaleRecord> getByProductCodeAndQuantity(
-            @RequestParam String code,
-            @RequestParam Integer quantity) {
+            @Parameter(description = "Product code", required = true) @RequestParam String code,
+            @Parameter(description = "Quantity", required = true) @RequestParam Integer quantity) {
         return repository.findByProductCodeAndQuantity(code, quantity);
     }
 
@@ -221,22 +285,26 @@ public class DailySaleController {
 
     // 1. Filter by specific date: /api/sales/filter/date?date=2025-02-23
     @GetMapping("/filter/date")
-    public List<DailySaleRecord> getByDate(@RequestParam String date) {
+    @Operation(summary = "Filter sales by specific date", description = "Retrieves sales for a specific date (format: YYYY-MM-DD)")
+    public List<DailySaleRecord> getByDate(
+            @Parameter(description = "Date in YYYY-MM-DD format", required = true, example = "2026-03-04") @RequestParam String date) {
         LocalDate localDate = LocalDate.parse(date);
         return repository.findBySaleDate(localDate);
     }
 
     // 2. Filter by today: /api/sales/filter/today
     @GetMapping("/filter/today")
+    @Operation(summary = "Get today's sales", description = "Retrieves all sales records for today")
     public List<DailySaleRecord> getToday() {
         return repository.findBySaleDate(LocalDate.now());
     }
 
     // 3. Filter by date range: /api/sales/filter/range?startDate=2025-02-01&endDate=2025-02-23
     @GetMapping("/filter/range")
+    @Operation(summary = "Filter sales by date range", description = "Retrieves sales within a date range")
     public List<DailySaleRecord> getByDateRange(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
+            @Parameter(description = "Start date (YYYY-MM-DD)", required = true, example = "2026-03-01") @RequestParam String startDate,
+            @Parameter(description = "End date (YYYY-MM-DD)", required = true, example = "2026-03-04") @RequestParam String endDate) {
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
         return repository.findByDateRange(start, end);
@@ -244,22 +312,25 @@ public class DailySaleController {
 
     // 4. Filter by week: /api/sales/filter/week?year=2025&week=8
     @GetMapping("/filter/week")
+    @Operation(summary = "Filter sales by week", description = "Retrieves sales for a specific week of the year")
     public List<DailySaleRecord> getByWeek(
-            @RequestParam int year,
-            @RequestParam int week) {
+            @Parameter(description = "Year", required = true, example = "2026") @RequestParam int year,
+            @Parameter(description = "Week number (1-53)", required = true, example = "10") @RequestParam int week) {
         return repository.findByYearAndWeek(year, week);
     }
 
     // 5. Filter by month: /api/sales/filter/month?year=2025&month=2
     @GetMapping("/filter/month")
+    @Operation(summary = "Filter sales by month", description = "Retrieves sales for a specific month")
     public List<DailySaleRecord> getByMonth(
-            @RequestParam int year,
-            @RequestParam int month) {
+            @Parameter(description = "Year", required = true, example = "2026") @RequestParam int year,
+            @Parameter(description = "Month (1-12)", required = true, example = "3") @RequestParam int month) {
         return repository.findByYearAndMonth(year, month);
     }
 
     // 6. Filter by current week: /api/sales/filter/current-week
     @GetMapping("/filter/current-week")
+    @Operation(summary = "Get current week's sales", description = "Retrieves sales for the current week")
     public List<DailySaleRecord> getCurrentWeek() {
         LocalDate today = LocalDate.now();
         int year = today.getYear();
@@ -269,6 +340,7 @@ public class DailySaleController {
 
     // 7. Filter by current month: /api/sales/filter/current-month
     @GetMapping("/filter/current-month")
+    @Operation(summary = "Get current month's sales", description = "Retrieves sales for the current month")
     public List<DailySaleRecord> getCurrentMonth() {
         LocalDate today = LocalDate.now();
         return repository.findByYearAndMonth(today.getYear(), today.getMonthValue());
@@ -278,6 +350,7 @@ public class DailySaleController {
 
     // 8. Get total quantity sold by product code (all time): /api/sales/summary/product-sales
     @GetMapping("/summary/product-sales")
+    @Operation(summary = "Get all-time product sales summary", description = "Retrieves total quantity sold for each product (all time)")
     public List<ProductSalesDTO> getProductSalesSummary() {
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCode();
         return productCostService.enrichWithCostsAndCommissionAllTime(results);
@@ -285,7 +358,9 @@ public class DailySaleController {
 
     // 9. Get quantity sold by product code for specific date: /api/sales/summary/product-sales/date?date=2025-02-23
     @GetMapping("/summary/product-sales/date")
-    public List<ProductSalesDTO> getProductSalesSummaryByDate(@RequestParam String date) {
+    @Operation(summary = "Get product sales summary by date", description = "Retrieves quantity sold for each product on a specific date")
+    public List<ProductSalesDTO> getProductSalesSummaryByDate(
+            @Parameter(description = "Date (YYYY-MM-DD)", required = true, example = "2026-03-04") @RequestParam String date) {
         LocalDate localDate = LocalDate.parse(date);
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(localDate);
         return productCostService.enrichWithCostsAndCommission(results, localDate);
@@ -293,6 +368,7 @@ public class DailySaleController {
 
     // 10. Get quantity sold by product code for today: /api/sales/summary/product-sales/today
     @GetMapping("/summary/product-sales/today")
+    @Operation(summary = "Get today's product sales summary", description = "Retrieves quantity sold for each product today")
     public List<ProductSalesDTO> getProductSalesSummaryToday() {
         LocalDate today = LocalDate.now();
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(today);
@@ -301,9 +377,10 @@ public class DailySaleController {
 
     // 11. Get quantity sold by product code for date range: /api/sales/summary/product-sales/range?startDate=2025-02-01&endDate=2025-02-23
     @GetMapping("/summary/product-sales/range")
+    @Operation(summary = "Get product sales summary by date range", description = "Retrieves quantity sold for each product within a date range")
     public List<ProductSalesDTO> getProductSalesSummaryByDateRange(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
+            @Parameter(description = "Start date (YYYY-MM-DD)", required = true, example = "2026-03-01") @RequestParam String startDate,
+            @Parameter(description = "End date (YYYY-MM-DD)", required = true, example = "2026-03-04") @RequestParam String endDate) {
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(start, end);
@@ -312,15 +389,17 @@ public class DailySaleController {
 
     // 12. Get quantity sold by product code for specific month: /api/sales/summary/product-sales/month?year=2025&month=2
     @GetMapping("/summary/product-sales/month")
+    @Operation(summary = "Get product sales summary by month", description = "Retrieves quantity sold for each product in a specific month")
     public List<ProductSalesDTO> getProductSalesSummaryByMonth(
-            @RequestParam int year,
-            @RequestParam int month) {
+            @Parameter(description = "Year", required = true, example = "2026") @RequestParam int year,
+            @Parameter(description = "Month (1-12)", required = true, example = "3") @RequestParam int month) {
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(year, month);
         return productCostService.enrichWithCostsAndCommissionByMonth(results, year, month);
     }
 
     // 13. Get quantity sold by product code for current month: /api/sales/summary/product-sales/current-month
     @GetMapping("/summary/product-sales/current-month")
+    @Operation(summary = "Get current month's product sales summary", description = "Retrieves quantity sold for each product in the current month")
     public List<ProductSalesDTO> getProductSalesSummaryCurrentMonth() {
         LocalDate today = LocalDate.now();
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(today.getYear(), today.getMonthValue());

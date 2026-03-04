@@ -3,6 +3,11 @@ package com.urviclean.recordbook.controllers;
 import com.urviclean.recordbook.models.ProductCostManualRequest;
 import com.urviclean.recordbook.models.ProductCostManualResponse;
 import com.urviclean.recordbook.services.ProductCostManualService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/product-cost")
 @CrossOrigin(origins = "http://localhost:3000")
+@Tag(name = "Product Cost Management", description = "APIs for managing product costs, pricing, and commissions")
 public class ProductCostManualController {
 
     @Autowired
@@ -23,6 +29,12 @@ public class ProductCostManualController {
      * POST /api/product-cost/add
      */
     @PostMapping("/add")
+    @Operation(summary = "Create product cost entry",
+               description = "Creates a new product with cost, pricing, and commission details")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Product cost created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request data")
+    })
     public ResponseEntity<ProductCostManualResponse> createProductCost(
             @RequestBody ProductCostManualRequest request) {
         try {

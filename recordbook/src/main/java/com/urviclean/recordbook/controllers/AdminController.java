@@ -2,6 +2,11 @@ package com.urviclean.recordbook.controllers;
 
 import com.urviclean.recordbook.models.*;
 import com.urviclean.recordbook.services.AdminService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,40 +20,44 @@ import java.util.List;
         allowedHeaders = "*",
         methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}
 )
+@Tag(name = "Admin Operations", description = "Admin APIs for managing sales, vendors, products, customers, salesmen, production batches, and routes")
 public class AdminController {
 
     @Autowired
     private AdminService adminService;
 
-    // Sales endpoints
+    // Sales endpoints (now using DailySaleRecord)
     @GetMapping("/sales")
-    public List<SalesRecord> listSales() {
-        return adminService.getAllSales();
+    @Operation(summary = "List all daily sales", description = "Get all daily sale records")
+    public List<DailySaleRecord> listSales() {
+        return adminService.getAllDailySales();
     }
 
     @GetMapping("/sales/{id}")
-    public ResponseEntity<SalesRecord> getSale(@PathVariable Long id) {
-        SalesRecord sale = adminService.getSaleById(id);
+    @Operation(summary = "Get daily sale by ID", description = "Get a specific daily sale record")
+    public ResponseEntity<DailySaleRecord> getSale(
+            @Parameter(description = "Sale ID", required = true) @PathVariable Long id) {
+        DailySaleRecord sale = adminService.getDailySaleById(id);
         if (sale == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(sale);
     }
 
     @PostMapping("/sales")
-    public SalesRecord createSale(@RequestBody SalesRecord sale) {
-        return adminService.saveSale(sale);
+    public DailySaleRecord createSale(@RequestBody DailySaleRecord sale) {
+        return adminService.saveDailySale(sale);
     }
 
     @PutMapping("/sales/{id}")
-    public ResponseEntity<SalesRecord> updateSale(@PathVariable Long id, @RequestBody SalesRecord newDetails) {
-        SalesRecord existing = adminService.getSaleById(id);
+    public ResponseEntity<DailySaleRecord> updateSale(@PathVariable Long id, @RequestBody DailySaleRecord newDetails) {
+        DailySaleRecord existing = adminService.getDailySaleById(id);
         if (existing == null) return ResponseEntity.notFound().build();
-        newDetails.setSaleId(id);
-        return ResponseEntity.ok(adminService.saveSale(newDetails));
+        newDetails.setId(id);
+        return ResponseEntity.ok(adminService.saveDailySale(newDetails));
     }
 
     @DeleteMapping("/sales/{id}")
     public ResponseEntity<Void> deleteSale(@PathVariable Long id) {
-        adminService.deleteSale(id);
+        adminService.deleteDailySale(id);
         return ResponseEntity.noContent().build();
     }
 

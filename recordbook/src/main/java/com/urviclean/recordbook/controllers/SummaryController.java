@@ -3,6 +3,11 @@ package com.urviclean.recordbook.controllers;
 import com.urviclean.recordbook.models.DailySummaryRequest;
 import com.urviclean.recordbook.models.DailySummaryResponse;
 import com.urviclean.recordbook.services.DailySummaryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -15,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/summary")
 @CrossOrigin(origins = "http://localhost:3000")
+@Tag(name = "Daily Summary", description = "APIs for daily sales summary, revenue, expenses, and profit calculations")
 public class SummaryController {
 
     @Autowired
@@ -27,6 +33,12 @@ public class SummaryController {
      * Calculates net_profit = totalRevenue - totalAgentCommission - totalExpense - materialCost
      */
     @PostMapping("/submit")
+    @Operation(summary = "Submit daily summary",
+               description = "Creates or updates daily summary with revenue, expenses, commissions, and profit calculations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Daily summary created/updated successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request data")
+    })
     public ResponseEntity<DailySummaryResponse> submitDailySummary(@RequestBody DailySummaryRequest request) {
         DailySummaryResponse response = dailySummaryService.submitDailySummary(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

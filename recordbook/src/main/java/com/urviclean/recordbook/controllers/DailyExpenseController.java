@@ -3,6 +3,10 @@ package com.urviclean.recordbook.controllers;
 import com.urviclean.recordbook.models.DailyExpenseRecord;
 import com.urviclean.recordbook.models.DailyExpenseRecordResponse;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/daily-expenses")
 @CrossOrigin(origins = "http://localhost:3000")
+@Tag(name = "Daily Expenses", description = "APIs for managing daily expense records by salesman and date")
 public class DailyExpenseController {
 
     @Autowired
@@ -23,6 +28,8 @@ public class DailyExpenseController {
      * Get all daily expense records
      */
     @GetMapping
+    @Operation(summary = "Get all daily expenses", description = "Retrieves all daily expense records")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved expense records")
     public ResponseEntity<List<DailyExpenseRecord>> getAllDailyExpenses() {
         return ResponseEntity.ok(repository.findAll());
     }

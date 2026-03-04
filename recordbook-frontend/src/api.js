@@ -70,10 +70,18 @@ export default api;
 
 // Route API
 export const routeAPI = {
-  getAll: () => api.get('/api/admin/routes'),
-  getVillages: (routeId) => api.get(`/api/admin/routes/${routeId}/villages`),
-  create: (data) => api.post('/api/admin/routes', data),
-  addVillage: (data) => api.post('/api/admin/route-villages', data),
+  getAll: () => api.get('/api/routes'),
+  getById: (id) => api.get(`/api/routes/${id}`),
+  create: (data) => api.post('/api/routes', data),
+  update: (id, data) => api.put(`/api/routes/${id}`, data),
+  delete: (id) => api.delete(`/api/routes/${id}`),
+  getAllVillages: () => api.get('/api/routes/villages'),
+  getVillageById: (id) => api.get(`/api/routes/villages/${id}`),
+  getVillages: (routeId) => api.get('/api/routes/villages').then(res => ({ data: Array.isArray(res.data) ? res.data.filter(v => v.routeId == routeId) : [] })), // Client-side filter
+  createVillage: (data) => api.post('/api/routes/villages', data),
+  addVillage: (data) => api.post('/api/routes/villages', data), // alias for createVillage
+  updateVillage: (id, data) => api.put(`/api/routes/villages/${id}`, data),
+  deleteVillage: (id) => api.delete(`/api/routes/villages/${id}`),
 };
 
 // Salesman API
@@ -96,9 +104,20 @@ export const productAPI = {
 
 // Sales API
 export const salesAPI = {
-  createSales: (data) => api.post('/api/admin/sales', data),
-  getAllSales: () => api.get('/api/admin/sales'),
-  deleteSales: (id) => api.delete(`/api/admin/sales/${id}`),
+  createSales: (data) => api.post('/api/sales', data),
+  getAllSales: () => api.get('/api/sales'),
+  getSaleById: (id) => api.get(`/api/sales/${id}`),
+  updateSale: (id, data) => api.put(`/api/sales/${id}`, data),
+  deleteSales: (id) => api.delete(`/api/sales/${id}`),
+  getSalesBySalesman: (alias) => api.get(`/api/sales/salesman/${alias}`),
+  getSalesByDate: (date) => api.get(`/api/sales/date?date=${date}`),
+  getSalesBySalesmanDate: (salesman, date) => api.get(`/api/sales/salesman-date?salesman=${encodeURIComponent(salesman)}&date=${date}`),
+  getSalesBySalesmanRange: (salesman, startDate, endDate) => api.get(`/api/sales/salesman-range?salesman=${encodeURIComponent(salesman)}&startDate=${startDate}&endDate=${endDate}`),
+  getSalesByRange: (startDate, endDate) => api.get(`/api/sales/range?startDate=${startDate}&endDate=${endDate}`),
+  createSaleWithExpenses: (data) => api.post('/api/sales/with-expenses', data),
+  getDailySalesDump: () => api.get('/api/sales/dump'),
+  getProductSalesSummary: () => api.get('/api/sales/summary/product'),
+  getTodayProductSalesSummary: () => api.get('/api/sales/summary/product/today'),
 };
 
 // Product Sales Summary API
@@ -112,7 +131,16 @@ export const productSalesSummaryAPI = {
 
 // Expense API
 export const expenseAPI = {
-  getByDate: (salesman, date) => api.get(`/api/admin/expenses/${salesman}/${date}`),
+  getByDate: (salesman, date) => api.get(`/api/daily-expenses/salesman-date?salesman=${encodeURIComponent(salesman)}&date=${date}`),
+  submitSalesWithExpense: (data) => api.post('/api/sales/with-expenses', data),
+  getAll: () => api.get('/api/daily-expenses'),
+  getBySalesman: (salesman) => api.get(`/api/daily-expenses/salesman?salesman=${encodeURIComponent(salesman)}`),
+  getByDateOnly: (date) => api.get(`/api/daily-expenses/date?date=${date}`),
+  getBySalesmanRange: (salesman, startDate, endDate) => api.get(`/api/daily-expenses/salesman-range?salesman=${encodeURIComponent(salesman)}&startDate=${startDate}&endDate=${endDate}`),
+  getByRange: (startDate, endDate) => api.get(`/api/daily-expenses/range?startDate=${startDate}&endDate=${endDate}`),
+  create: (data) => api.post('/api/daily-expenses', data),
+  update: (id, data) => api.put(`/api/daily-expenses/${id}`, data),
+  delete: (id) => api.delete(`/api/daily-expenses/${id}`),
 };
 
 // Warehouse API
@@ -135,14 +163,22 @@ export const warehouseAPI = {
 export const productCostAPI = {
   getAll: () => api.get('/api/product-cost/all'),
   create: (data) => api.post('/api/product-cost/add', data),
+  add: (data) => api.post('/api/product-cost/add', data), // alias for create
   update: (pid, data) => api.put(`/api/product-cost/update/${pid}`, data),
-  delete: (pid) => api.delete(`/api/product-cost/delete/${pid}`),
+  delete: (pid) => api.delete(`/api/product-cost/${pid}`),
   getByCode: (code) => api.get(`/api/product-cost/by-code/${code}`),
   getByName: (name) => api.get(`/api/product-cost/by-name/${name}`),
   exists: (productCode) => api.get(`/api/product-cost/exists/${productCode}`),
+  checkCodeExists: (productCode) => api.get(`/api/product-cost/exists/${productCode}`).then(res => ({ data: { exists: res.data } })), // alias for exists
 };
 
 // Summary API
 export const summaryAPI = {
-  submit: (data) => api.post('/api/summary', data),
+  submit: (data) => api.post('/api/summary/submit', data),
+  getBySalesmanDate: (alias, date) => api.get(`/api/summary/by-salesman-date?alias=${encodeURIComponent(alias)}&date=${date}`),
+  getAll: () => api.get('/api/summary/all'),
+  getBySalesman: (alias) => api.get(`/api/summary/salesman?alias=${encodeURIComponent(alias)}`),
+  getByDate: (date) => api.get(`/api/summary/date?date=${date}`),
+  getBySalesmanRange: (alias, startDate, endDate) => api.get(`/api/summary/salesman-range?alias=${encodeURIComponent(alias)}&startDate=${startDate}&endDate=${endDate}`),
+  getByRange: (startDate, endDate) => api.get(`/api/summary/range?startDate=${startDate}&endDate=${endDate}`),
 };

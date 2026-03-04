@@ -10,7 +10,7 @@ const DailySummaryReport = () => {
     useEffect(() => {
       const fetchSalesmenAliases = async () => {
         try {
-          const response = await (await import('../api')).default.get('/api/v1/admin/salesmen/aliases');
+          const response = await (await import('../api')).default.get('/api/admin/salesmen/aliases');
           const data = response.data;
           const aliases = Array.isArray(data) ? data : (data && data.aliases) || [];
           setSalesmen(aliases);

@@ -16,6 +16,8 @@ public class AdminService implements AdminInterface {
     @Autowired
     private SalesRecordRepository salesRecordRepository;
     @Autowired
+    private DailySaleRecordRepository dailySaleRecordRepository;
+    @Autowired
     private VendorRepository vendorRepository;
     @Autowired
     private ProductRepository productRepository;
@@ -42,7 +44,7 @@ public class AdminService implements AdminInterface {
     @Autowired
     private SalesmanExpenseRepository salesmanExpenseRepository;
 
-    // SalesRecord
+    // SalesRecord - Legacy (kept for backward compatibility)
     @Override
     public List<SalesRecord> getAllSales() { return salesRecordRepository.findAll(); }
     @Override
@@ -51,6 +53,12 @@ public class AdminService implements AdminInterface {
     public SalesRecord saveSale(SalesRecord sale) { return salesRecordRepository.save(sale); }
     @Override
     public void deleteSale(Long id) { salesRecordRepository.deleteById(id); }
+
+    // DailySaleRecord - Primary API endpoint
+    public List<DailySaleRecord> getAllDailySales() { return dailySaleRecordRepository.findAll(); }
+    public DailySaleRecord getDailySaleById(Long id) { return dailySaleRecordRepository.findById(id).orElse(null); }
+    public DailySaleRecord saveDailySale(DailySaleRecord dailySale) { return dailySaleRecordRepository.save(dailySale); }
+    public void deleteDailySale(Long id) { dailySaleRecordRepository.deleteById(id); }
 
     // Vendor
     @Override

@@ -3,6 +3,10 @@ package com.urviclean.recordbook.controllers;
 import com.urviclean.recordbook.models.Route;
 import com.urviclean.recordbook.models.RouteVillage;
 import com.urviclean.recordbook.services.AdminService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/routes")
 @CrossOrigin(origins = "http://localhost:3000")
+@Tag(name = "Routes & Villages", description = "APIs for managing sales routes and villages")
 public class RouteController {
 
     @Autowired
@@ -19,12 +24,15 @@ public class RouteController {
 
     // Route endpoints
     @GetMapping
+    @Operation(summary = "List all routes", description = "Get all sales routes")
     public List<Route> listRoutes() {
         return adminService.getAllRoutes();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Route> getRoute(@PathVariable Long id) {
+    @Operation(summary = "Get route by ID", description = "Get a specific route")
+    public ResponseEntity<Route> getRoute(
+            @Parameter(description = "Route ID", required = true) @PathVariable Long id) {
         Route route = adminService.getRouteById(id);
         if (route == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(route);

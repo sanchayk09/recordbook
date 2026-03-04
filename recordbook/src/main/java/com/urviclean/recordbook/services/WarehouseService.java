@@ -28,6 +28,9 @@ public class WarehouseService {
     private WarehouseLedgerRepository warehouseLedgerRepository;
 
     @Autowired
+    private SalesmanLedgerRepository salesmanLedgerRepository;
+
+    @Autowired
     private ProductCostManualRepository productCostManualRepository;
 
     @Autowired
@@ -105,8 +108,11 @@ public class WarehouseService {
     }
 
     /**
-     * Issue stock to salesman
-     * RULE: Reduces warehouse stock, creates ledger entry
+     * Issue stock to salesman - FOUR writes in one transaction
+     * 1. Decrement warehouse_inventory
+     * 2. Insert warehouse_ledger (ISSUE_TO_SALESMAN, -qty)
+     * 3. Increment salesman_stock_summary
+     * 4. Insert salesman_ledger (ISSUE_FROM_WAREHOUSE, +qty)
      */
     @Transactional
     public WarehouseLedger issueStockToSalesman(IssueStockRequest request) {
@@ -133,58 +139,65 @@ public class WarehouseService {
         int qtyBefore = inventory.getQtyAvailable();
         int qtyAfter = qtyBefore - request.getQuantity();
 
-        // Check for negative stock
+        // Validation: Check for sufficient warehouse stock
         if (qtyAfter < 0) {
             throw new InvalidInputException(
-                "Insufficient stock. Available: " + qtyBefore + ", Requested: " + request.getQuantity(),
-                "INSUFFICIENT_STOCK"
+                "Insufficient stock in warehouse. Available: " + qtyBefore + ", Requested: " + request.getQuantity(),
+                "INSUFFICIENT_WAREHOUSE_STOCK"
             );
         }
 
-        // Update inventory
+        // WRITE 1: Update warehouse_inventory (decrement)
         inventory.setQtyAvailable(qtyAfter);
         warehouseInventoryRepository.save(inventory);
 
-        // Create ledger entry
-        WarehouseLedger ledger = new WarehouseLedger();
-        ledger.setProductCode(request.getProductCode());
-        ledger.setTxnType(WarehouseLedger.TransactionType.ISSUE_TO_SALESMAN);
-        ledger.setDeltaQty(-request.getQuantity());
-        ledger.setQtyBefore(qtyBefore);
-        ledger.setQtyAfter(qtyAfter);
-        ledger.setSalesmanAlias(request.getSalesmanAlias());
-
-        // Auto-generate remarks with date
+        // WRITE 2: Create warehouse_ledger entry (ISSUE_TO_SALESMAN, delta=-qty)
+        WarehouseLedger warehouseLedger = new WarehouseLedger();
+        warehouseLedger.setProductCode(request.getProductCode());
+        warehouseLedger.setTxnType(WarehouseLedger.TransactionType.ISSUE_TO_SALESMAN);
+        warehouseLedger.setDeltaQty(-request.getQuantity());
+        warehouseLedger.setQtyBefore(qtyBefore);
+        warehouseLedger.setQtyAfter(qtyAfter);
+        warehouseLedger.setSalesmanAlias(request.getSalesmanAlias());
         String autoRemarks = "Issue stock to salesman on " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-        ledger.setRemarks(autoRemarks);
+        warehouseLedger.setRemarks(autoRemarks);
+        warehouseLedger.setCreatedBy(request.getCreatedBy());
+        WarehouseLedger savedWarehouseLedger = warehouseLedgerRepository.save(warehouseLedger);
 
-        ledger.setCreatedBy(request.getCreatedBy());
+        // WRITE 3: Update salesman_stock_summary (increment - salesman now holds this stock)
+        SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
+            .findBySalesmanAliasAndProductCode(request.getSalesmanAlias(), request.getProductCode())
+            .orElse(new SalesmanStockSummary());
 
-        WarehouseLedger savedLedger = warehouseLedgerRepository.save(ledger);
+        int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
+        int salesmanStockAfter = salesmanStockBefore + request.getQuantity();
 
-        // UPDATE salesman_stock_summary table
-        try {
-            SalesmanStockSummary summary = salesmanStockSummaryRepository
-                .findBySalesmanAliasAndProductCode(request.getSalesmanAlias(), request.getProductCode())
-                .orElse(new SalesmanStockSummary());
+        salesmanSummary.setSalesmanAlias(request.getSalesmanAlias());
+        salesmanSummary.setProductCode(request.getProductCode());
+        salesmanSummary.setCurrentStock(salesmanStockAfter);
+        salesmanSummary.setLastUpdated(LocalDateTime.now());
+        salesmanStockSummaryRepository.save(salesmanSummary);
 
-            summary.setSalesmanAlias(request.getSalesmanAlias());
-            summary.setProductCode(request.getProductCode());
-            summary.setCurrentStock((summary.getCurrentStock() != null ? summary.getCurrentStock() : 0) + request.getQuantity());
-            summary.setLastUpdated(LocalDateTime.now());
+        // WRITE 4: Create salesman_ledger entry (ISSUE_FROM_WAREHOUSE, delta=+qty)
+        SalesmanLedger salesmanLedger = new SalesmanLedger(
+            request.getSalesmanAlias(),
+            request.getProductCode(),
+            SalesmanTxnType.ISSUE_FROM_WAREHOUSE,
+            request.getQuantity(),  // positive = added to salesman stock
+            "Issued from warehouse. Salesman stock before: " + salesmanStockBefore + " after: " + salesmanStockAfter,
+            request.getCreatedBy()
+        );
+        salesmanLedgerRepository.save(salesmanLedger);
 
-            salesmanStockSummaryRepository.save(summary);
-            System.out.println("✓ Updated salesman_stock_summary: " + request.getSalesmanAlias() + " - " + request.getProductCode() + " = " + summary.getCurrentStock());
-        } catch (Exception e) {
-            System.err.println("WARNING: Failed to update salesman_stock_summary: " + e.getMessage());
-        }
-
-        return savedLedger;
+        return savedWarehouseLedger;
     }
 
     /**
-     * Return stock from salesman
-     * RULE: Increases warehouse stock, creates ledger entry
+     * Return stock from salesman - FOUR writes in one transaction
+     * 1. Decrement salesman_stock_summary
+     * 2. Insert salesman_ledger (RETURN_TO_WAREHOUSE, -qty)
+     * 3. Increment warehouse_inventory
+     * 4. Insert warehouse_ledger (RETURN_FROM_SALESMAN, +qty)
      */
     @Transactional
     public WarehouseLedger returnStockFromSalesman(ReturnStockRequest request) {
@@ -198,7 +211,40 @@ public class WarehouseService {
             throw new ResourceNotFoundException("Salesman not found: " + request.getSalesmanAlias());
         }
 
-        // Get or create inventory
+        // VALIDATION 1: Check salesman has enough stock to return
+        SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
+            .findBySalesmanAliasAndProductCode(request.getSalesmanAlias(), request.getProductCode())
+            .orElse(new SalesmanStockSummary());
+
+        int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
+        int salesmanStockAfter = salesmanStockBefore - request.getQuantity();
+
+        if (salesmanStockAfter < 0) {
+            throw new InvalidInputException(
+                "Insufficient stock with salesman. Available: " + salesmanStockBefore + ", Requested: " + request.getQuantity(),
+                "INSUFFICIENT_SALESMAN_STOCK"
+            );
+        }
+
+        // WRITE 1: Decrement salesman_stock_summary (return reduces salesman stock)
+        salesmanSummary.setSalesmanAlias(request.getSalesmanAlias());
+        salesmanSummary.setProductCode(request.getProductCode());
+        salesmanSummary.setCurrentStock(salesmanStockAfter);
+        salesmanSummary.setLastUpdated(LocalDateTime.now());
+        salesmanStockSummaryRepository.save(salesmanSummary);
+
+        // WRITE 2: Create salesman_ledger entry (RETURN_TO_WAREHOUSE, delta=-qty)
+        SalesmanLedger salesmanLedger = new SalesmanLedger(
+            request.getSalesmanAlias(),
+            request.getProductCode(),
+            SalesmanTxnType.RETURN_TO_WAREHOUSE,
+            -request.getQuantity(),  // negative = removed from salesman stock
+            "Returned to warehouse. Salesman stock before: " + salesmanStockBefore + " after: " + salesmanStockAfter,
+            request.getCreatedBy()
+        );
+        salesmanLedgerRepository.save(salesmanLedger);
+
+        // Get warehouse inventory
         WarehouseInventory inventory = warehouseInventoryRepository
             .findByProductCode(request.getProductCode())
             .orElseGet(() -> {
@@ -208,32 +254,27 @@ public class WarehouseService {
                 return warehouseInventoryRepository.save(newInv);
             });
 
-        int qtyBefore = inventory.getQtyAvailable();
-        int qtyAfter = qtyBefore + request.getQuantity();
+        int warehouseQtyBefore = inventory.getQtyAvailable();
+        int warehouseQtyAfter = warehouseQtyBefore + request.getQuantity();
 
-        // Update inventory
-        inventory.setQtyAvailable(qtyAfter);
+        // WRITE 3: Increment warehouse_inventory
+        inventory.setQtyAvailable(warehouseQtyAfter);
         warehouseInventoryRepository.save(inventory);
 
-        // Create ledger entry
-        WarehouseLedger ledger = new WarehouseLedger();
-        ledger.setProductCode(request.getProductCode());
-        ledger.setTxnType(WarehouseLedger.TransactionType.RETURN_FROM_SALESMAN);
-        ledger.setDeltaQty(request.getQuantity());
-        ledger.setQtyBefore(qtyBefore);
-        ledger.setQtyAfter(qtyAfter);
-        ledger.setSalesmanAlias(request.getSalesmanAlias());
-
-        // Auto-generate remarks with date
+        // WRITE 4: Create warehouse_ledger entry (RETURN_FROM_SALESMAN, delta=+qty)
+        WarehouseLedger warehouseLedger = new WarehouseLedger();
+        warehouseLedger.setProductCode(request.getProductCode());
+        warehouseLedger.setTxnType(WarehouseLedger.TransactionType.RETURN_FROM_SALESMAN);
+        warehouseLedger.setDeltaQty(request.getQuantity());
+        warehouseLedger.setQtyBefore(warehouseQtyBefore);
+        warehouseLedger.setQtyAfter(warehouseQtyAfter);
+        warehouseLedger.setSalesmanAlias(request.getSalesmanAlias());
         String autoRemarks = "Return stock from salesman on " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-        ledger.setRemarks(autoRemarks);
+        warehouseLedger.setRemarks(autoRemarks);
+        warehouseLedger.setCreatedBy(request.getCreatedBy());
+        WarehouseLedger savedWarehouseLedger = warehouseLedgerRepository.save(warehouseLedger);
 
-        ledger.setCreatedBy(request.getCreatedBy());
-
-        WarehouseLedger savedLedger = warehouseLedgerRepository.save(ledger);
-
-
-        return savedLedger;
+        return savedWarehouseLedger;
     }
 
     /**

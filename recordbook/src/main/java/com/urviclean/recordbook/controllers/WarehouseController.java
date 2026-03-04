@@ -2,6 +2,11 @@ package com.urviclean.recordbook.controllers;
 
 import com.urviclean.recordbook.models.*;
 import com.urviclean.recordbook.services.WarehouseService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +33,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/warehouse")
 @CrossOrigin(originPatterns = "*", allowCredentials = "true")
+@Tag(name = "Warehouse Management", description = "APIs for warehouse inventory, stock issuance, returns, and ledger tracking")
 public class WarehouseController {
 
     @Autowired
@@ -37,6 +43,8 @@ public class WarehouseController {
      * Get all warehouse inventory
      */
     @GetMapping("/inventory")
+    @Operation(summary = "Get all warehouse inventory", description = "Retrieves all products in warehouse inventory")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved inventory")
     public ResponseEntity<List<WarehouseInventoryResponse>> getAllInventory() {
         List<WarehouseInventoryResponse> inventory = warehouseService.getAllInventory();
         return ResponseEntity.ok(inventory);
