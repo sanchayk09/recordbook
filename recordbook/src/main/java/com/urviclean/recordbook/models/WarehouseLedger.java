@@ -48,8 +48,7 @@ public class WarehouseLedger {
         ISSUE_TO_SALESMAN,
         RETURN_FROM_SALESMAN,
         MANUAL_ADJUST,
-        DAMAGE,
-        SOLD_BY_SALESMAN
+        DAMAGE
     }
 
     @PrePersist
