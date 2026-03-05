@@ -2,6 +2,7 @@ package com.urviclean.recordbook.repositories;
 
 import com.urviclean.recordbook.models.SalesmanStockSummary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -62,5 +63,31 @@ public interface SalesmanStockSummaryRepository extends JpaRepository<SalesmanSt
      * This is the main method for the salesmen-stock-summary API
      */
     List<SalesmanStockSummary> findByCurrentStockGreaterThan(Integer minStock);
+
+    /**
+     * Atomically decrement current_stock only if sufficient stock is available.
+     * Returns the number of rows updated (1 = success, 0 = insufficient stock or row missing).
+     * Use this for concurrency-safe stock enforcement when recording a sale.
+     */
+    @Modifying
+    @Query("UPDATE SalesmanStockSummary s " +
+           "SET s.currentStock = s.currentStock - :qty, s.lastUpdated = CURRENT_TIMESTAMP " +
+           "WHERE s.salesmanAlias = :alias AND s.productCode = :product AND s.currentStock >= :qty")
+    int decrementStockIfSufficient(@Param("alias") String salesmanAlias,
+                                   @Param("product") String productCode,
+                                   @Param("qty") int qty);
+
+    /**
+     * Atomically restore (increment) current_stock for a salesman-product combo.
+     * Returns the number of rows updated (1 = success, 0 = row missing).
+     * Use this when reversing a previously recorded sale.
+     */
+    @Modifying
+    @Query("UPDATE SalesmanStockSummary s " +
+           "SET s.currentStock = s.currentStock + :qty, s.lastUpdated = CURRENT_TIMESTAMP " +
+           "WHERE s.salesmanAlias = :alias AND s.productCode = :product")
+    int restoreStock(@Param("alias") String salesmanAlias,
+                     @Param("product") String productCode,
+                     @Param("qty") int qty);
 }
 

@@ -11,22 +11,15 @@ import com.urviclean.recordbook.models.ProductSalesDTO;
 import com.urviclean.recordbook.utils.CommissionCalculator;
 import com.urviclean.recordbook.utils.VolumeCalculator;
 import com.urviclean.recordbook.services.ProductCostService;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.urviclean.recordbook.models.DailySaleCustomerType;
+import com.urviclean.recordbook.services.SalesService;
 import com.urviclean.recordbook.models.DailySaleRecord;
 import com.urviclean.recordbook.models.ExpenseCategory;
 import com.urviclean.recordbook.models.Salesman;
 import com.urviclean.recordbook.models.SalesmanExpense;
-import com.urviclean.recordbook.models.SalesmanLedger;
-import com.urviclean.recordbook.models.SalesmanTxnType;
-import com.urviclean.recordbook.models.SalesmanStockSummary;
 import com.urviclean.recordbook.repositories.DailySaleRecordRepository;
 import com.urviclean.recordbook.repositories.SalesmanExpenseRepository;
 import com.urviclean.recordbook.repositories.SalesmanRepository;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
-import com.urviclean.recordbook.repositories.SalesmanLedgerRepository;
-import com.urviclean.recordbook.repositories.SalesmanStockSummaryRepository;
-import com.urviclean.recordbook.exception.InvalidInputException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,11 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/sales")
@@ -63,16 +53,12 @@ public class DailySaleController {
     private DailyExpenseRecordRepository dailyExpenseRecordRepository;
 
     @Autowired
-    private SalesmanLedgerRepository salesmanLedgerRepository;
-
-    @Autowired
-    private SalesmanStockSummaryRepository salesmanStockSummaryRepository;
+    private SalesService salesService;
 
     @Autowired
     private ProductCostService productCostService;
 
     @PostMapping("/")
-    @Transactional
     @Operation(summary = "Create a new daily sale record",
                description = "Creates a new daily sale record and updates salesman ledger (NOT warehouse)")
     @ApiResponses(value = {
@@ -80,83 +66,7 @@ public class DailySaleController {
         @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     public DailySaleRecord createRecord(@RequestBody DailySaleRecord record) {
-        // Calculate volume_sold based on product_code and quantity
-        if (record.getProductCode() != null && record.getQuantity() != null) {
-            BigDecimal volumeSold = VolumeCalculator.calculateVolumeSold(
-                    record.getProductCode(),
-                    record.getQuantity()
-            );
-            record.setVolumeSold(volumeSold);
-        }
-
-        // Save the sales record
-        DailySaleRecord savedRecord = repository.save(record);
-
-        // CRITICAL: When a sale is recorded:
-        // 1. Validate salesman stock exists and sufficient qty in salesman_stock_summary
-        // 2. Update salesman_stock_summary with -qty
-        // 3. Insert salesman_ledger with SOLD transaction
-        // DO NOT update warehouse_ledger (no SOLD_BY_SALESMAN entry anymore)
-
-        if (record.getSalesmanName() != null && record.getProductCode() != null && record.getQuantity() != null) {
-            try {
-                System.out.println(">>> Creating salesman ledger entry for sale:");
-                System.out.println("    Salesman: " + record.getSalesmanName());
-                System.out.println("    Product: " + record.getProductCode());
-                System.out.println("    Quantity: " + record.getQuantity());
-
-                // Get current salesman stock for this product
-                SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
-                    .findBySalesmanAliasAndProductCode(record.getSalesmanName(), record.getProductCode())
-                    .orElse(new SalesmanStockSummary());
-
-                int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
-                int qtySold = record.getQuantity();
-                int salesmanStockAfter = salesmanStockBefore - qtySold;
-
-                System.out.println("    Salesman Stock Before: " + salesmanStockBefore);
-                System.out.println("    Salesman Stock After: " + salesmanStockAfter);
-
-                // VALIDATION: Check salesman has enough stock
-                if (salesmanStockAfter < 0) {
-                    throw new InvalidInputException(
-                        "Insufficient stock with salesman. Available: " + salesmanStockBefore + ", Trying to sell: " + qtySold,
-                        "INSUFFICIENT_SALESMAN_STOCK"
-                    );
-                }
-
-                // Update salesman_stock_summary (decrement by sold quantity)
-                salesmanSummary.setSalesmanAlias(record.getSalesmanName());
-                salesmanSummary.setProductCode(record.getProductCode());
-                salesmanSummary.setCurrentStock(salesmanStockAfter);
-                salesmanSummary.setLastUpdated(LocalDateTime.now());
-                salesmanStockSummaryRepository.save(salesmanSummary);
-
-                // Create salesman_ledger entry for SOLD (negative quantity)
-                SalesmanLedger salesmanLedger = new SalesmanLedger(
-                    record.getSalesmanName(),
-                    record.getProductCode(),
-                    SalesmanTxnType.SOLD,
-                    -qtySold,  // Negative because sale reduces salesman stock
-                    "Sold via daily_sale_record id=" + savedRecord.getId(),
-                    "system"
-                );
-                salesmanLedgerRepository.save(salesmanLedger);
-                System.out.println(">>> Salesman ledger entry created successfully!");
-
-            } catch (Exception e) {
-                // Log the error but don't fail the sale record creation
-                System.err.println("!!! ERROR: Failed to update salesman ledger for sale: " + e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println(">>> Skipping salesman ledger update - missing required fields:");
-            System.out.println("    salesmanName: " + record.getSalesmanName());
-            System.out.println("    productCode: " + record.getProductCode());
-            System.out.println("    quantity: " + record.getQuantity());
-        }
-
-        return savedRecord;
+        return salesService.createSale(record);
     }
 
     @GetMapping
@@ -177,77 +87,18 @@ public class DailySaleController {
     public DailySaleRecord updateRecord(
             @Parameter(description = "ID of the record to update", required = true) @PathVariable Long id,
             @RequestBody DailySaleRecord newDetails) {
-        return repository.findById(id)
-                .map(record -> {
-                    if (newDetails.getSlNo() != null) {
-                        record.setSlNo(newDetails.getSlNo());
-                    }
-                    if (newDetails.getSaleDate() != null) {
-                        record.setSaleDate(newDetails.getSaleDate());
-                    }
-                    if (newDetails.getSalesmanName() != null && !newDetails.getSalesmanName().isBlank()) {
-                        record.setSalesmanName(newDetails.getSalesmanName().trim());
-                    }
-                    if (newDetails.getCustomerName() != null && !newDetails.getCustomerName().isBlank()) {
-                        record.setCustomerName(newDetails.getCustomerName().trim());
-                    }
-                    if (newDetails.getCustomerType() != null) {
-                        record.setCustomerType(newDetails.getCustomerType());
-                    }
-                    if (newDetails.getVillage() != null) {
-                        record.setVillage(newDetails.getVillage());
-                    }
-                    if (newDetails.getMobileNumber() != null) {
-                        record.setMobileNumber(newDetails.getMobileNumber());
-                    }
-                    if (newDetails.getProductCode() != null && !newDetails.getProductCode().isBlank()) {
-                        record.setProductCode(newDetails.getProductCode().trim());
-                    }
-                    if (newDetails.getQuantity() != null) {
-                        record.setQuantity(newDetails.getQuantity());
-                    }
-                    if (newDetails.getRate() != null) {
-                        record.setRate(newDetails.getRate());
-                    }
-
-                    // Always recalculate revenue based on quantity * rate
-                    if (record.getQuantity() != null && record.getRate() != null) {
-                        BigDecimal calculatedRevenue = record.getRate().multiply(BigDecimal.valueOf(record.getQuantity()));
-                        record.setRevenue(calculatedRevenue);
-                    }
-
-                    // Always recalculate agent commission
-                    if (record.getProductCode() != null && record.getRate() != null && record.getQuantity() != null) {
-                        BigDecimal commission = CommissionCalculator.calculateCommission(
-                                record.getProductCode(),
-                                record.getRate(),
-                                record.getQuantity()
-                        );
-                        record.setAgentCommission(commission);
-                    }
-
-                    // Always recalculate volume_sold based on product_code and quantity
-                    if (record.getProductCode() != null && record.getQuantity() != null) {
-                        BigDecimal volumeSold = VolumeCalculator.calculateVolumeSold(
-                                record.getProductCode(),
-                                record.getQuantity()
-                        );
-                        record.setVolumeSold(volumeSold);
-                    }
-
-                    return repository.save(record);
-                }).orElseThrow(() -> new RuntimeException("Record not found"));
+        return salesService.updateSale(id, newDetails);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a daily sale record",
-               description = "Deletes a daily sale record by ID")
+               description = "Deletes a daily sale record by ID and restores salesman stock")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Record deleted successfully"),
         @ApiResponse(responseCode = "404", description = "Record not found")
     })
     public void deleteRecord(@Parameter(description = "ID of the record to delete", required = true) @PathVariable Long id) {
-        repository.deleteById(id);
+        salesService.voidSale(id);
     }
 
     // 1. Filter by Product Code: /api/sales/filter/product-code?code=ABC123
@@ -519,7 +370,8 @@ public class DailySaleController {
         }
 
         List<DailySaleRecord> existingRecords = repository.findAll();
-        Set<DailySaleRecord> saleEntities = new LinkedHashSet<>();
+        List<DailySaleRecord> savedSales = new ArrayList<>();
+
         if (request.dailySales != null) {
             for (DailySaleRecordInput item : request.dailySales) {
                 DailySaleRecord incoming = new DailySaleRecord();
@@ -545,65 +397,19 @@ public class DailySaleController {
 
                 DailySaleRecord existing = findExistingRecord(incoming, existingRecords);
                 if (existing == null) {
-                    existingRecords.add(incoming);
-                    saleEntities.add(incoming);
+                    // New sale: createSale handles atomic stock check + ledger
+                    DailySaleRecord saved = salesService.createSale(incoming);
+                    existingRecords.add(saved);
+                    savedSales.add(saved);
                 } else {
-                    applyUpdate(existing, incoming);
-                    saleEntities.add(existing);
+                    // Existing sale: updateSale handles atomic stock reconciliation + ledger
+                    DailySaleRecord saved = salesService.updateSale(existing.getId(), incoming);
+                    savedSales.add(saved);
                 }
             }
         }
 
         List<SalesmanExpense> savedExpenses = salesmanExpenseRepository.saveAll(expenseEntities);
-        List<DailySaleRecord> savedSales = repository.saveAll(new ArrayList<>(saleEntities));
-
-        // Deduct stock from salesman for each sale (SALE affects ONLY salesman stock)
-        java.time.format.DateTimeFormatter saleDateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy");
-        for (DailySaleRecord sale : savedSales) {
-            if (sale.getSalesmanName() != null && sale.getProductCode() != null && sale.getQuantity() != null) {
-                try {
-                    System.out.println(">>> Creating salesman ledger entry for bulk sale:");
-                    System.out.println("    Salesman: " + sale.getSalesmanName());
-                    System.out.println("    Product: " + sale.getProductCode());
-                    System.out.println("    Quantity: " + sale.getQuantity());
-
-                    SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
-                        .findBySalesmanAliasAndProductCode(sale.getSalesmanName(), sale.getProductCode())
-                        .orElse(new SalesmanStockSummary());
-
-                    int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
-                    int qtySold = sale.getQuantity();
-                    int salesmanStockAfter = salesmanStockBefore - qtySold;
-
-                    System.out.println("    Salesman Stock Before: " + salesmanStockBefore);
-                    System.out.println("    Salesman Stock After: " + salesmanStockAfter);
-
-                    // Update salesman_stock_summary (decrement by sold quantity)
-                    salesmanSummary.setSalesmanAlias(sale.getSalesmanName());
-                    salesmanSummary.setProductCode(sale.getProductCode());
-                    salesmanSummary.setCurrentStock(salesmanStockAfter);
-                    salesmanSummary.setLastUpdated(LocalDateTime.now());
-                    salesmanStockSummaryRepository.save(salesmanSummary);
-
-                    // Create salesman_ledger entry for SOLD (negative quantity)
-                    SalesmanLedger salesmanLedger = new SalesmanLedger(
-                        sale.getSalesmanName(),
-                        sale.getProductCode(),
-                        SalesmanTxnType.SOLD,
-                        -qtySold,
-                        "Sold via sales-expense bulk entry on " +
-                            saleDateFormatter.format(sale.getSaleDate()),
-                        "system"
-                    );
-                    salesmanLedgerRepository.save(salesmanLedger);
-                    System.out.println(">>> Salesman ledger entry created successfully!");
-
-                } catch (Exception e) {
-                    System.err.println("!!! ERROR: Failed to update salesman ledger for sale: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            }
-        }
 
         // Populate daily_expense_record if expenses exist
         if (!expenseEntities.isEmpty()) {
@@ -677,25 +483,6 @@ public class DailySaleController {
                 && equalsString(r1.getVillage(), r2.getVillage())
                 && equalsString(r1.getMobileNumber(), r2.getMobileNumber())
                 && equalsString(r1.getProductCode(), r2.getProductCode());
-    }
-
-    /**
-     * Apply updates from incoming to existing record.
-     */
-    private void applyUpdate(DailySaleRecord target, DailySaleRecord source) {
-        target.setSlNo(source.getSlNo());
-        target.setSaleDate(source.getSaleDate());
-        target.setSalesmanName(source.getSalesmanName());
-        target.setCustomerName(source.getCustomerName());
-        target.setCustomerType(source.getCustomerType());
-        target.setVillage(source.getVillage());
-        target.setMobileNumber(source.getMobileNumber());
-        target.setProductCode(source.getProductCode());
-        target.setQuantity(source.getQuantity());
-        target.setRate(source.getRate());
-        target.setRevenue(source.getRevenue());
-        target.setAgentCommission(source.getAgentCommission());
-        target.setVolumeSold(source.getVolumeSold());
     }
 
     /**
