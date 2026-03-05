@@ -373,9 +373,13 @@ public class WarehouseService {
     /**
      * Get stock with salesman (issued - returned)
      */
+    /**
+     * Get current stock with a salesman for a specific product
+     * Calculates from salesman_ledger by summing delta_qty
+     */
     public Long getStockWithSalesman(String salesmanAlias, String productCode) {
-        Long stock = warehouseLedgerRepository.getStockWithSalesman(salesmanAlias, productCode);
-        return stock != null ? stock : 0L;
+        Integer stock = salesmanLedgerRepository.getCurrentStock(salesmanAlias, productCode);
+        return stock != null ? stock.longValue() : 0L;
     }
 
     /**
@@ -481,70 +485,95 @@ public class WarehouseService {
      * FALLBACK: Calculates directly from warehouse_ledger table
      * Use only if salesman_stock_summary is not populated
      */
+    /**
+     * Get all salesmen with their current stock details (product-wise breakdown)
+     * Calculates directly from salesman_ledger table by summing delta_qty
+     */
     public List<SalesmanStockDTO> getAllSalesmenWithStockFromLedger() {
-        // Get all salesmen
-        List<Salesman> allSalesmen = salesmanRepository.findAll();
+        try {
+            System.out.println("INFO: Calculating salesman stock from salesman_ledger table");
 
-        return allSalesmen.stream()
-            .map(salesman -> {
-                // Get all unique products for this salesman from ledger
-                List<String> productCodes = warehouseLedgerRepository
-                    .findBySalesmanAliasOrderByCreatedAtDesc(salesman.getAlias())
-                    .stream()
-                    .map(WarehouseLedger::getProductCode)
-                    .distinct()
-                    .collect(Collectors.toList());
+            // Get aggregated current stock grouped by salesman and product
+            // Returns tuples of [salesmanAlias, productCode, sum(deltaQty)]
+            List<Object[]> stockData = salesmanLedgerRepository.getCurrentStockGroupedBySalesmanAndProduct();
 
-                // Calculate stock for each product
-                List<ProductStock> productStocks = productCodes.stream()
-                    .map(productCode -> {
-                        long quantity = getStockWithSalesman(salesman.getAlias(), productCode);
+            if (stockData == null || stockData.isEmpty()) {
+                System.out.println("INFO: salesman_ledger table has no records with positive stock.");
+                System.out.println("This is normal if no stock has been issued yet.");
+                return new java.util.ArrayList<>();
+            }
 
-                        if (quantity <= 0) {
-                            return null; // Skip if no stock
-                        }
+            System.out.println("INFO: Found " + stockData.size() + " stock records from salesman_ledger");
 
-                        ProductStock ps = new ProductStock();
-                        ps.setProductCode(productCode);
-                        ps.setQuantity((int) quantity);
+            // Group by salesman alias
+            java.util.Map<String, SalesmanStockDTO> salesmenMap = new java.util.HashMap<>();
 
-                        // Enrich with product name, variant, and calculate volume
-                        productCostManualRepository.findByProductCode(productCode)
-                            .ifPresent(product -> {
-                                ps.setProductName(product.getProductName());
-                                ps.setVariant(product.getVariant());
-                                ps.setMetric(product.getMetric());
-                                ps.setMetricQuantity(product.getMetricQuantity());
+            for (Object[] row : stockData) {
+                String alias = (String) row[0];
+                String productCode = (String) row[1];
+                Long sumDeltaQty = (Long) row[2];
+                int currentStock = sumDeltaQty != null ? sumDeltaQty.intValue() : 0;
 
-                                // Calculate total volume if metric is liquid
-                                if ("lit".equals(product.getMetric()) && product.getMetricQuantity() != null) {
-                                    java.math.BigDecimal totalVolume = product.getMetricQuantity()
-                                        .multiply(java.math.BigDecimal.valueOf(quantity))
-                                        .setScale(2, java.math.RoundingMode.HALF_UP);
-                                    ps.setTotalVolume(totalVolume);
-                                }
-                            });
+                if (currentStock <= 0) {
+                    continue; // Skip if no current stock
+                }
 
-                        return ps;
-                    })
-                    .filter(ps -> ps != null)
-                    .sorted((a, b) -> a.getProductCode().compareTo(b.getProductCode()))
-                    .collect(Collectors.toList());
+                SalesmanStockDTO dto = salesmenMap.getOrDefault(alias, new SalesmanStockDTO());
 
-                // Create summary DTO
-                SalesmanStockDTO summary = new SalesmanStockDTO();
-                summary.setSalesmanAlias(salesman.getAlias());
-                summary.setFirstName(salesman.getFirstName());
-                summary.setLastName(salesman.getLastName());
-                summary.setProducts(productStocks);
-                summary.setTotalProducts(productStocks.size());
-                summary.setTotalQuantity(productStocks.stream().mapToInt(ProductStock::getQuantity).sum());
+                if (dto.getSalesmanAlias() == null) {
+                    dto.setSalesmanAlias(alias);
+                    dto.setProducts(new java.util.ArrayList<>());
 
-                return summary;
-            })
-            .filter(summary -> summary.getTotalQuantity() > 0) // Only include salesmen with stock
-            .sorted((a, b) -> a.getSalesmanAlias().compareToIgnoreCase(b.getSalesmanAlias()))
-            .collect(Collectors.toList());
+                    // Get salesman details
+                    salesmanRepository.findByAliasIgnoreCase(alias).ifPresent(s -> {
+                        dto.setFirstName(s.getFirstName());
+                        dto.setLastName(s.getLastName());
+                    });
+                }
+
+                // Add product stock
+                ProductStock ps = new ProductStock();
+                ps.setProductCode(productCode);
+                ps.setQuantity(currentStock);
+
+                // Enrich with product details
+                productCostManualRepository.findByProductCode(productCode).ifPresent(p -> {
+                    ps.setProductName(p.getProductName());
+                    ps.setVariant(p.getVariant());
+                    ps.setMetric(p.getMetric());
+                    ps.setMetricQuantity(p.getMetricQuantity());
+
+                    // Calculate total volume if metric is liquid
+                    if ("lit".equals(p.getMetric()) && p.getMetricQuantity() != null) {
+                        java.math.BigDecimal totalVolume = p.getMetricQuantity()
+                            .multiply(java.math.BigDecimal.valueOf(currentStock))
+                            .setScale(2, java.math.RoundingMode.HALF_UP);
+                        ps.setTotalVolume(totalVolume);
+                    }
+                });
+
+                dto.getProducts().add(ps);
+                salesmenMap.put(alias, dto);
+            }
+
+            // Calculate totals and convert to list
+            List<SalesmanStockDTO> result = salesmenMap.values().stream()
+                .peek(dto -> {
+                    dto.setTotalQuantity(dto.getProducts().stream().mapToInt(ProductStock::getQuantity).sum());
+                    dto.setTotalProducts(dto.getProducts().size());
+                })
+                .filter(dto -> dto.getTotalQuantity() > 0)
+                .sorted((a, b) -> a.getSalesmanAlias().compareToIgnoreCase(b.getSalesmanAlias()))
+                .collect(Collectors.toList());
+
+            System.out.println("INFO: Returning " + result.size() + " salesmen with stock from ledger");
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("ERROR reading from salesman_ledger: " + e.getMessage());
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
     }
 
     /**
@@ -554,8 +583,8 @@ public class WarehouseService {
      */
     public List<SalesmanStockDTO> getAllSalesmenWithStock() {
         System.out.println("=== getAllSalesmenWithStock() called ===");
-        // Use summary table - populated by database triggers
-        return getAllSalesmenWithStockFromSummary();
+        // Use salesman_ledger table - calculate current stock from ledger entries
+        return getAllSalesmenWithStockFromLedger();
     }
 
     /**

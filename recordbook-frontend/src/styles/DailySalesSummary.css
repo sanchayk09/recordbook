@@ -68,6 +68,29 @@
   color: #fff;
 }
 
+.dss-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dss-dropdown-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 24px;
+  background-image: none;
+}
+
+.dss-dropdown-btn option:first-child {
+  display: none;
+}
+
+.dss-dropdown-btn:hover {
+  background-color: #15803d;
+  color: #fff;
+}
+
 .dss-filter-inputs {
   display: flex;
   gap: 10px;

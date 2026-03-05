@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { warehouseAPI, salesmanAPI, productCostAPI } from '../api';
 import { notifySuccess, notifyError } from '../utils/toast';
+import { cacheUtils } from '../utils/cacheUtils';
 import '../styles/WarehouseDashboard.css';
 
 const WarehouseDashboard = () => {
@@ -38,15 +39,8 @@ const WarehouseDashboard = () => {
     remarks: '',
   });
 
-  // Load initial data
-  useEffect(() => {
-    loadInventory();
-    loadSalesmen();
-    loadProducts();
-    loadSalesmenStock();
-  }, []);
-
-  const loadInventory = async () => {
+  // Wrap all load functions with useCallback to prevent duplicate API calls
+  const loadInventory = useCallback(async () => {
     try {
       setLoading(true);
       const response = await warehouseAPI.getAllInventory();
@@ -61,9 +55,9 @@ const WarehouseDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadLedger = async () => {
+  const loadLedger = useCallback(async () => {
     try {
       setLoading(true);
       const response = await warehouseAPI.getAllLedger();
@@ -78,26 +72,45 @@ const WarehouseDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadSalesmen = async () => {
+  const loadSalesmen = useCallback(async () => {
     try {
       let aliases = [];
 
-      try {
-        const aliasResponse = await salesmanAPI.getAliases();
-        aliases = Array.isArray(aliasResponse.data)
-          ? aliasResponse.data
-              .map((alias) => String(alias || '').trim())
-              .filter(Boolean)
-              .map((alias, idx) => ({
-                id: `alias-${idx}`,
-                alias,
-                displayName: alias,
-              }))
-          : [];
-      } catch (error) {
-        aliases = [];
+      // Check cache first
+      const cachedAliases = cacheUtils.getSalesmenAliases();
+      if (cachedAliases && cachedAliases.length > 0) {
+        aliases = cachedAliases
+          .map((alias) => String(alias || '').trim())
+          .filter(Boolean)
+          .map((alias, idx) => ({
+            id: `alias-${idx}`,
+            alias,
+            displayName: alias,
+          }));
+      } else {
+        try {
+          const aliasResponse = await salesmanAPI.getAliases();
+          aliases = Array.isArray(aliasResponse.data)
+            ? aliasResponse.data
+                .map((alias) => String(alias || '').trim())
+                .filter(Boolean)
+                .map((alias, idx) => ({
+                  id: `alias-${idx}`,
+                  alias,
+                  displayName: alias,
+                }))
+            : [];
+          
+          // Cache the raw aliases
+          if (aliases.length > 0) {
+            const rawAliases = aliases.map(a => a.alias);
+            cacheUtils.setSalesmenAliases(rawAliases);
+          }
+        } catch (error) {
+          aliases = [];
+        }
       }
 
       if (aliases.length > 0) {
@@ -136,9 +149,9 @@ const WarehouseDashboard = () => {
       }
       setSalesmen([]);
     }
-  };
+  }, []);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       const response = await productCostAPI.getAll();
       const productList = Array.isArray(response.data) ? response.data : [];
@@ -184,9 +197,9 @@ const WarehouseDashboard = () => {
       }
       setProducts([]);
     }
-  };
+  }, []);
 
-  const loadSalesmenStock = async () => {
+  const loadSalesmenStock = useCallback(async () => {
     try {
       setLoading(true);
       const response = await warehouseAPI.getSalesmenStockSummary();
@@ -200,7 +213,15 @@ const WarehouseDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load initial data on mount
+  useEffect(() => {
+    loadInventory();
+    loadSalesmen();
+    loadProducts();
+    loadSalesmenStock();
+  }, [loadInventory, loadSalesmen, loadProducts, loadSalesmenStock]);
 
   // New handlers for modal-based issue stock
   const handleStartIssueForSalesman = (salesmanAlias) => {

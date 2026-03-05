@@ -38,7 +38,7 @@ public class RouteController {
         return ResponseEntity.ok(route);
     }
 
-    @PostMapping
+    @PostMapping("/")
     public Route createRoute(@RequestBody Route route) {
         return adminService.saveRoute(route);
     }

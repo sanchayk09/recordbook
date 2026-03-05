@@ -71,7 +71,7 @@ public class DailySaleController {
     @Autowired
     private ProductCostService productCostService;
 
-    @PostMapping
+    @PostMapping("/")
     @Transactional
     @Operation(summary = "Create a new daily sale record",
                description = "Creates a new daily sale record and updates salesman ledger (NOT warehouse)")
@@ -341,6 +341,52 @@ public class DailySaleController {
         return repository.findByYearAndMonth(today.getYear(), today.getMonthValue());
     }
 
+    // 8. Filter by last N days: /api/sales/filter/last-days?days=7
+    @GetMapping("/filter/last-days")
+    @Operation(summary = "Get sales for last N days", description = "Retrieves sales for the last N days (including today)")
+    public List<DailySaleRecord> getLastNDays(
+            @Parameter(description = "Number of days", required = true, example = "7") @RequestParam int days) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(days - 1);
+        return repository.findByDateRange(startDate, endDate);
+    }
+
+    // 9. Filter by last 7 days: /api/sales/filter/last-7-days
+    @GetMapping("/filter/last-7-days")
+    @Operation(summary = "Get sales for last 7 days", description = "Retrieves sales for the last 7 days (including today)")
+    public List<DailySaleRecord> getLast7Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(6);
+        return repository.findByDateRange(startDate, endDate);
+    }
+
+    // 10. Filter by last 15 days: /api/sales/filter/last-15-days
+    @GetMapping("/filter/last-15-days")
+    @Operation(summary = "Get sales for last 15 days", description = "Retrieves sales for the last 15 days (including today)")
+    public List<DailySaleRecord> getLast15Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(14);
+        return repository.findByDateRange(startDate, endDate);
+    }
+
+    // 11. Filter by last 30 days: /api/sales/filter/last-30-days
+    @GetMapping("/filter/last-30-days")
+    @Operation(summary = "Get sales for last 30 days", description = "Retrieves sales for the last 30 days (including today)")
+    public List<DailySaleRecord> getLast30Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(29);
+        return repository.findByDateRange(startDate, endDate);
+    }
+
+    // 12. Filter by last 90 days: /api/sales/filter/last-90-days
+    @GetMapping("/filter/last-90-days")
+    @Operation(summary = "Get sales for last 90 days", description = "Retrieves sales for the last 90 days (including today)")
+    public List<DailySaleRecord> getLast90Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(89);
+        return repository.findByDateRange(startDate, endDate);
+    }
+
     // Product Sales Summary Endpoints (Group by Product Code)
 
     // 8. Get total quantity sold by product code (all time): /api/sales/summary/product-sales
@@ -399,6 +445,46 @@ public class DailySaleController {
         LocalDate today = LocalDate.now();
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(today.getYear(), today.getMonthValue());
         return productCostService.enrichWithCostsAndCommissionByMonth(results, today.getYear(), today.getMonthValue());
+    }
+
+    // 14. Get quantity sold by product code for last 7 days: /api/sales/summary/product-sales/last-7-days
+    @GetMapping("/summary/product-sales/last-7-days")
+    @Operation(summary = "Get product sales summary for last 7 days", description = "Retrieves quantity sold for each product in the last 7 days")
+    public List<ProductSalesDTO> getProductSalesSummaryLast7Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(6);
+        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
+        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
+    }
+
+    // 15. Get quantity sold by product code for last 15 days: /api/sales/summary/product-sales/last-15-days
+    @GetMapping("/summary/product-sales/last-15-days")
+    @Operation(summary = "Get product sales summary for last 15 days", description = "Retrieves quantity sold for each product in the last 15 days")
+    public List<ProductSalesDTO> getProductSalesSummaryLast15Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(14);
+        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
+        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
+    }
+
+    // 16. Get quantity sold by product code for last 30 days: /api/sales/summary/product-sales/last-30-days
+    @GetMapping("/summary/product-sales/last-30-days")
+    @Operation(summary = "Get product sales summary for last 30 days", description = "Retrieves quantity sold for each product in the last 30 days")
+    public List<ProductSalesDTO> getProductSalesSummaryLast30Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(29);
+        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
+        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
+    }
+
+    // 17. Get quantity sold by product code for last 90 days: /api/sales/summary/product-sales/last-90-days
+    @GetMapping("/summary/product-sales/last-90-days")
+    @Operation(summary = "Get product sales summary for last 90 days", description = "Retrieves quantity sold for each product in the last 90 days")
+    public List<ProductSalesDTO> getProductSalesSummaryLast90Days() {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(89);
+        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
+        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
     }
 
     // POST with request body for alias + expenses + daily sales

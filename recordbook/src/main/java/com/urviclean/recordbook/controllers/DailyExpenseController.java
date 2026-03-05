@@ -99,9 +99,9 @@ public class DailyExpenseController {
 
     /**
      * Create a new daily expense record
-     * POST /api/daily-expenses
+     * POST /api/daily-expenses/
      */
-    @PostMapping
+    @PostMapping("/")
     public ResponseEntity<DailyExpenseRecordResponse> createDailyExpense(
             @RequestBody DailyExpenseRecord record) {
         DailyExpenseRecord saved = repository.save(record);

@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { salesmanAPI, expenseAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
+import { cacheUtils } from '../utils/cacheUtils';
 import '../styles/DailySalesDump.css';
 
 const DailySalesDump = () => {
@@ -26,25 +27,34 @@ const DailySalesDump = () => {
   const [salesmenList, setSalesmenList] = useState([]);
   const [loadingSalesmen, setLoadingSalesmen] = useState(false);
 
-  React.useEffect(() => {
-    const loadSalesmen = async () => {
-      setLoadingSalesmen(true);
-      try {
+  // Memoize loadSalesmen to prevent duplicate calls
+  const loadSalesmen = useCallback(async () => {
+    setLoadingSalesmen(true);
+    try {
+      // Check cache first
+      let salesmen = cacheUtils.getSalesmenAliases();
+      if (!salesmen) {
         const response = await salesmanAPI.getAliases();
-        console.log('Salesmen API Response:', response.data);
-        const salesmen = Array.isArray(response.data) ? response.data : [];
-        console.log('Processed salesmen list:', salesmen);
-        setSalesmenList(salesmen);
-      } catch (error) {
-        console.error('Error loading salesmen:', error);
-        notifyError('Failed to load salesmen: ' + (error.response?.data?.message || error.message));
-        setSalesmenList([]);
-      } finally {
-        setLoadingSalesmen(false);
+        salesmen = Array.isArray(response.data) ? response.data : [];
+        cacheUtils.setSalesmenAliases(salesmen);
+        console.log('Salesmen API Response (fresh):', response.data);
+      } else {
+        console.log('Salesmen loaded from cache:', salesmen);
       }
-    };
-    loadSalesmen();
+      console.log('Processed salesmen list:', salesmen);
+      setSalesmenList(salesmen);
+    } catch (error) {
+      console.error('Error loading salesmen:', error);
+      notifyError('Failed to load salesmen: ' + (error.response?.data?.message || error.message));
+      setSalesmenList([]);
+    } finally {
+      setLoadingSalesmen(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadSalesmen();
+  }, [loadSalesmen]);
 
   const convertToInputDate = (value) => {
     if (!value) return '';

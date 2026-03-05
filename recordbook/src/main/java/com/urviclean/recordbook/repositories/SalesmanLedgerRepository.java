@@ -76,5 +76,36 @@ public interface SalesmanLedgerRepository extends JpaRepository<SalesmanLedger, 
      * Find entries created before a specific date for archival/cleanup
      */
     List<SalesmanLedger> findByCreatedAtBefore(LocalDateTime date);
+
+    /**
+     * Calculate current stock for a salesman and product by summing all delta_qty
+     * Positive delta = stock added (ISSUE_FROM_WAREHOUSE)
+     * Negative delta = stock removed (SOLD, RETURN_TO_WAREHOUSE)
+     */
+    @Query("SELECT COALESCE(SUM(sl.deltaQty), 0) FROM SalesmanLedger sl " +
+           "WHERE sl.salesmanAlias = :alias AND sl.productCode = :productCode")
+    Integer getCurrentStock(@Param("alias") String salesmanAlias, @Param("productCode") String productCode);
+
+    /**
+     * Get all distinct salesman aliases who have ledger entries
+     */
+    @Query("SELECT DISTINCT sl.salesmanAlias FROM SalesmanLedger sl")
+    List<String> findAllDistinctSalesmanAliases();
+
+    /**
+     * Get all distinct product codes for a specific salesman
+     */
+    @Query("SELECT DISTINCT sl.productCode FROM SalesmanLedger sl WHERE sl.salesmanAlias = :alias")
+    List<String> findDistinctProductCodesByAlias(@Param("alias") String salesmanAlias);
+
+    /**
+     * Get current stock grouped by salesman and product
+     * Returns tuples of [salesmanAlias, productCode, sum(deltaQty)]
+     */
+    @Query("SELECT sl.salesmanAlias, sl.productCode, SUM(sl.deltaQty) " +
+           "FROM SalesmanLedger sl " +
+           "GROUP BY sl.salesmanAlias, sl.productCode " +
+           "HAVING SUM(sl.deltaQty) > 0")
+    List<Object[]> getCurrentStockGroupedBySalesmanAndProduct();
 }
 

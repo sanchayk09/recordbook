@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { salesAPI, salesmanAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
 import { getTodayDate, getCurrentMonth } from '../utils/dateUtils';
+import { cacheUtils } from '../utils/cacheUtils';
 import '../styles/DailySalesSummary.css';
+
+let salesSummaryLoadPromise = null;
 
 const DailySalesSummary = () => {
   const [salesRecords, setSalesRecords] = useState([]);
@@ -21,29 +24,57 @@ const DailySalesSummary = () => {
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc' for serial number sorting
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchSalesRecords();
+  // Reuse in-flight request to avoid duplicate initial calls in StrictMode
+  const fetchSalesRecords = useCallback(async () => {
+    if (!salesSummaryLoadPromise) {
+      salesSummaryLoadPromise = (async () => {
+        const salesResponse = await salesAPI.getAllSales();
+        
+        // Check cache first for aliases
+        let aliases = cacheUtils.getSalesmenAliases();
+        if (!aliases) {
+          const salesmenResponse = await salesmanAPI.getAliases();
+          aliases = Array.isArray(salesmenResponse.data) ? salesmenResponse.data : [];
+          cacheUtils.setSalesmenAliases(aliases);
+        }
+        
+        const records = Array.isArray(salesResponse.data) ? salesResponse.data : [];
+        return { records, aliases };
+      })()
+        .finally(() => {
+          salesSummaryLoadPromise = null;
+        });
+    }
+
+    return salesSummaryLoadPromise;
   }, []);
 
-  const fetchSalesRecords = async () => {
-    setLoading(true);
-    try {
-      const response = await salesAPI.getAllSales();
-      console.log('Sales Records:', response.data);
-      const records = Array.isArray(response.data) ? response.data : [];
-      setSalesRecords(records);
+  useEffect(() => {
+    let isActive = true;
 
-      // Fetch salesmen for dropdown
-      const salesmenResponse = await salesmanAPI.getAliases();
-      setSalesmen(Array.isArray(salesmenResponse.data) ? salesmenResponse.data : []);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      notifyError('Failed to load data: ' + (error.response?.data?.message || error.message));
-      setSalesRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const load = async () => {
+      setLoading(true);
+      try {
+        const { records, aliases } = await fetchSalesRecords();
+        if (!isActive) return;
+        setSalesRecords(records);
+        setSalesmen(aliases);
+      } catch (error) {
+        if (!isActive) return;
+        console.error('Error loading data:', error);
+        notifyError('Failed to load data: ' + (error.response?.data?.message || error.message));
+        setSalesRecords([]);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      isActive = false;
+    };
+  }, [fetchSalesRecords]);
 
   const uniqueProducts = useMemo(() => {
     const products = new Set(salesRecords.map(record => record.productCode).filter(Boolean));
@@ -73,6 +104,34 @@ const DailySalesSummary = () => {
       filtered = filtered.filter(record => record.saleDate.startsWith(selectedMonth));
     } else if (filterType === 'range') {
       filtered = filtered.filter(record => record.saleDate >= startDate && record.saleDate <= endDate);
+    } else if (filterType === 'last-7-days') {
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 6);
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = today.toISOString().split('T')[0];
+      filtered = filtered.filter(record => record.saleDate >= startStr && record.saleDate <= endStr);
+    } else if (filterType === 'last-15-days') {
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 14);
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = today.toISOString().split('T')[0];
+      filtered = filtered.filter(record => record.saleDate >= startStr && record.saleDate <= endStr);
+    } else if (filterType === 'last-30-days') {
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 29);
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = today.toISOString().split('T')[0];
+      filtered = filtered.filter(record => record.saleDate >= startStr && record.saleDate <= endStr);
+    } else if (filterType === 'last-90-days') {
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 89);
+      const startStr = startDate.toISOString().split('T')[0];
+      const endStr = today.toISOString().split('T')[0];
+      filtered = filtered.filter(record => record.saleDate >= startStr && record.saleDate <= endStr);
     }
 
     // Apply product filter
@@ -215,6 +274,20 @@ const DailySalesSummary = () => {
           >
             Specific Date
           </button>
+
+          <div className="dss-dropdown-container">
+            <select
+              value={filterType.startsWith('last-') ? filterType : ''}
+              onChange={(e) => e.target.value && setFilterType(e.target.value)}
+              className={`dss-filter-button dss-dropdown-btn ${filterType.startsWith('last-') ? 'active' : ''}`}
+            >
+              <option value="">Last X Days ▼</option>
+              <option value="last-7-days">Last 7 Days</option>
+              <option value="last-15-days">Last 15 Days</option>
+              <option value="last-30-days">Last 30 Days</option>
+              <option value="last-90-days">Last 90 Days</option>
+            </select>
+          </div>
 
           <button
             onClick={() => setFilterType('range')}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { routeAPI, salesmanAPI, customerAPI, productAPI, salesAPI } from '../api';
+import { cacheUtils } from '../utils/cacheUtils';
 import { notifySuccess, notifyError } from '../utils/toast';
 import '../styles/AddSalesRecord.css';
 
@@ -169,6 +170,7 @@ const AddSalesRecord = ({ onBack }) => {
     }
     try {
       await salesmanAPI.create(newSalesman);
+      cacheUtils.clearSalesmenAliases();
       notifySuccess('Salesman added successfully!');
       await fetchSalesmen();
       setNewSalesman({ firstName: '', lastName: '', address: '', contactNumber: '' });

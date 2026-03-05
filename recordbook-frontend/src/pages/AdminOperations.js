@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { customerAPI, salesmanAPI } from '../api';
+import { cacheUtils } from '../utils/cacheUtils';
 import '../styles/AdminDashboard.css';
 import '../styles/AdminOperations.css';
 import { notifySuccess, notifyError } from '../utils/toast';
@@ -77,6 +78,7 @@ const AdminOperations = () => {
         contactNumber: salesmanForm.contactNumber
       };
       await salesmanAPI.create(payload);
+      cacheUtils.clearSalesmenAliases();
       notifySuccess('Salesman added successfully!');
       setSalesmanForm({ firstName: '', lastName: '', alias: '', address: '', contactNumber: '' });
     } catch (err) {

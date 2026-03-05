@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LineChart, Line, PieChart, Pie, Cell, Sector, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { notifyError } from '../utils/toast';
 import { getTodayDate } from '../utils/dateUtils';
@@ -7,19 +7,21 @@ import '../styles/DailySummaryReport.css';
 const DailySummaryReport = () => {
     const [salesmen, setSalesmen] = useState([]);
 
-    useEffect(() => {
-      const fetchSalesmenAliases = async () => {
-        try {
-          const response = await (await import('../api')).default.get('/api/admin/salesmen/aliases');
-          const data = response.data;
-          const aliases = Array.isArray(data) ? data : (data && data.aliases) || [];
-          setSalesmen(aliases);
-        } catch (err) {
-          notifyError('Failed to load salesman aliases');
-        }
-      };
-      fetchSalesmenAliases();
+    // Memoize fetchSalesmenAliases to prevent duplicate calls
+    const fetchSalesmenAliases = useCallback(async () => {
+      try {
+        const response = await (await import('../api')).default.get('/api/admin/salesmen/aliases');
+        const data = response.data;
+        const aliases = Array.isArray(data) ? data : (data && data.aliases) || [];
+        setSalesmen(aliases);
+      } catch (err) {
+        notifyError('Failed to load salesman aliases');
+      }
     }, []);
+
+    useEffect(() => {
+      fetchSalesmenAliases();
+    }, [fetchSalesmenAliases]);
 
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -56,8 +58,19 @@ const DailySummaryReport = () => {
     };
   };
 
+  // Helper function to get last X days range
+  const getLastXDays = (days) => {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - days + 1);
+    return {
+      start: startDate.toISOString().split('T')[0],
+      end: today.toISOString().split('T')[0]
+    };
+  };
+
   // Fetch summaries using axios (api.js)
-  const fetchSummaries = async () => {
+  const fetchSummaries = useCallback(async () => {
     setLoading(true);
     try {
       let url = '/api/summary/all';
@@ -82,6 +95,19 @@ const DailySummaryReport = () => {
         } else {
           url = `/api/summary/range?startDate=${start}&endDate=${end}`;
         }
+      } else if (filterType === 'last7days' || filterType === 'last15days' || filterType === 'last30days' || filterType === 'last90days') {
+        const daysMap = {
+          'last7days': 7,
+          'last15days': 15,
+          'last30days': 30,
+          'last90days': 90
+        };
+        const { start, end } = getLastXDays(daysMap[filterType]);
+        if (salesmanAlias) {
+          url = `/api/summary/salesman-range?alias=${encodeURIComponent(salesmanAlias)}&startDate=${start}&endDate=${end}`;
+        } else {
+          url = `/api/summary/range?startDate=${start}&endDate=${end}`;
+        }
       } else if (filterType === 'dateRange') {
         if (salesmanAlias) {
           url = `/api/summary/salesman-range?alias=${encodeURIComponent(salesmanAlias)}&startDate=${startDate}&endDate=${endDate}`;
@@ -99,12 +125,11 @@ const DailySummaryReport = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterType, salesmanAlias, saleDate, startDate, endDate]);
 
   useEffect(() => {
     fetchSummaries();
-    // eslint-disable-next-line
-  }, [filterType, salesmanAlias]);
+  }, [fetchSummaries]);
 
   const chartData = useMemo(() => {
     // Aggregate revenue and net profit by sale date
@@ -244,6 +269,21 @@ const DailySummaryReport = () => {
           >
             This Month
           </button>
+
+          <div className="dsr-dropdown-container">
+            <select
+              value={filterType.startsWith('last') && filterType.includes('days') ? filterType : ''}
+              onChange={(e) => e.target.value && setFilterType(e.target.value)}
+              className={`dsr-filter-btn dsr-dropdown-btn ${(filterType.startsWith('last') && filterType.includes('days')) ? 'is-active' : ''}`}
+            >
+              <option value="">Last X Days ▼</option>
+              <option value="last7days">Last 7 Days</option>
+              <option value="last15days">Last 15 Days</option>
+              <option value="last30days">Last 30 Days</option>
+              <option value="last90days">Last 90 Days</option>
+            </select>
+          </div>
+
           <button
             onClick={() => setFilterType('dateRange')}
             className={`dsr-filter-btn ${filterType === 'dateRange' ? 'is-active' : ''}`}
@@ -352,7 +392,7 @@ const DailySummaryReport = () => {
       </table>
 
       {/* Charts container - all three side by side */}
-      {['week', 'month', 'dateRange'].includes(filterType) && (
+      {summaries.length > 0 && (
         <div className="dsr-charts">
           {/* Revenue & Net Profit Trend Chart */}
           <div className="dsr-chart-card">

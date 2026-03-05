@@ -70,31 +70,35 @@ public class LedgerArchiveScheduler {
             ensureArchiveTablesExist();
 
             // Archive warehouse_ledger entries older than 90 days
-            String archiveWarehouseLedgerSql =
-                "INSERT INTO warehouse_ledger_archive SELECT * FROM warehouse_ledger WHERE created_at < ?";
+            try {
+                String archiveWarehouseLedgerSql =
+                    "INSERT INTO warehouse_ledger_archive SELECT * FROM warehouse_ledger WHERE created_at < ?";
 
-            int archivedWarehouseLedger = jdbcTemplate.update(archiveWarehouseLedgerSql, cutoffDate);
-            logger.info("Archived {} warehouse_ledger entries", archivedWarehouseLedger);
+                int archivedWarehouseLedger = jdbcTemplate.update(archiveWarehouseLedgerSql, cutoffDate);
+                logger.info("Archived {} warehouse_ledger entries", archivedWarehouseLedger);
 
-            // Delete archived warehouse_ledger entries
-            String deleteWarehouseLedgerSql =
-                "DELETE FROM warehouse_ledger WHERE created_at < ?";
+                // Delete archived warehouse_ledger entries
+                String deleteWarehouseLedgerSql =
+                    "DELETE FROM warehouse_ledger WHERE created_at < ?";
 
-            int deletedWarehouseLedger = jdbcTemplate.update(deleteWarehouseLedgerSql, cutoffDate);
-            logger.info("Deleted {} warehouse_ledger entries", deletedWarehouseLedger);
+                int deletedWarehouseLedger = jdbcTemplate.update(deleteWarehouseLedgerSql, cutoffDate);
+                logger.info("Deleted {} warehouse_ledger entries", deletedWarehouseLedger);
+            } catch (Exception e) {
+                logger.warn("Error archiving warehouse_ledger: {}", e.getMessage());
+            }
 
             // Archive salesman_ledger entries older than 90 days (optional - keeping full history is also fine)
-            String archiveSalesmanLedgerSql =
-                "INSERT INTO salesman_ledger_archive SELECT * FROM salesman_ledger WHERE created_at < ?";
-
             try {
+                String archiveSalesmanLedgerSql =
+                    "INSERT INTO salesman_ledger_archive SELECT * FROM salesman_ledger WHERE created_at < ?";
+
                 int archivedSalesmanLedger = jdbcTemplate.update(archiveSalesmanLedgerSql, cutoffDate);
                 logger.info("Archived {} salesman_ledger entries", archivedSalesmanLedger);
             } catch (Exception e) {
-                logger.warn("salesman_ledger_archive table not yet created. Skipping salesman_ledger archival. Error: {}", e.getMessage());
+                logger.warn("Error archiving salesman_ledger: {}", e.getMessage());
             }
 
-            logger.info("Ledger archival completed successfully");
+            logger.info("Ledger archival completed");
 
         } catch (Exception e) {
             logger.error("Error during ledger archival process", e);
@@ -107,19 +111,24 @@ public class LedgerArchiveScheduler {
     private void ensureArchiveTablesExist() {
         try {
             // Create warehouse_ledger_archive if it doesn't exist
-            String createWarehouseArchive =
-                "CREATE TABLE IF NOT EXISTS warehouse_ledger_archive LIKE warehouse_ledger";
-            jdbcTemplate.execute(createWarehouseArchive);
-            logger.info("Ensured warehouse_ledger_archive table exists");
-
-            // Add index if not exists
             try {
-                String createIndex =
-                    "CREATE INDEX IF NOT EXISTS idx_wla_created_at ON warehouse_ledger_archive(created_at)";
-                jdbcTemplate.execute(createIndex);
+                String createWarehouseArchive =
+                    "CREATE TABLE IF NOT EXISTS warehouse_ledger_archive LIKE warehouse_ledger";
+                jdbcTemplate.execute(createWarehouseArchive);
+                logger.info("Ensured warehouse_ledger_archive table exists");
+
+                // Add index if not exists
+                try {
+                    String createIndex =
+                        "CREATE INDEX IF NOT EXISTS idx_wla_created_at ON warehouse_ledger_archive(created_at)";
+                    jdbcTemplate.execute(createIndex);
+                } catch (Exception e) {
+                    // Index might already exist, ignore
+                    logger.debug("Index creation skipped or already exists: {}", e.getMessage());
+                }
             } catch (Exception e) {
-                // Index might already exist, ignore
-                logger.debug("Index creation skipped or already exists: {}", e.getMessage());
+                logger.warn("Could not create warehouse_ledger_archive table: {}", e.getMessage());
+                // Don't throw, continue to try salesman_ledger_archive
             }
 
             // Create salesman_ledger_archive if it doesn't exist
@@ -144,7 +153,7 @@ public class LedgerArchiveScheduler {
 
         } catch (Exception e) {
             logger.error("Error ensuring archive tables exist", e);
-            throw e;
+            // Don't throw - let the application continue even if archive setup fails
         }
     }
 }

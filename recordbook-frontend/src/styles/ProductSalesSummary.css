@@ -54,6 +54,29 @@
   color: #fff;
 }
 
+.pss-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.pss-dropdown-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 24px;
+  background-image: none;
+}
+
+.pss-dropdown-btn option:first-child {
+  display: none;
+}
+
+.pss-dropdown-btn:hover {
+  background-color: #15803d;
+  color: #fff;
+}
+
 .pss-filter-row {
   display: flex;
   gap: 6px;

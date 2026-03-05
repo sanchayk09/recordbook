@@ -24,6 +24,7 @@
 .dsr-filter-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .dsr-filter-btn {
@@ -38,6 +39,29 @@
 
 .dsr-filter-btn.is-active {
   background-color: #4caf50;
+  color: #fff;
+}
+
+.dsr-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dsr-dropdown-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  padding-right: 24px;
+  background-image: none;
+}
+
+.dsr-dropdown-btn option:first-child {
+  display: none;
+}
+
+.dsr-dropdown-btn:hover {
+  background-color: #45a049;
   color: #fff;
 }
 

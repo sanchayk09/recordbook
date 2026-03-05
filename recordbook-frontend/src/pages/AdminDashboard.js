@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { salesAPI } from '../api';
 import '../styles/AdminDashboard.css';
 import { notifySuccess, notifyError } from '../utils/toast';
 import { filterSales, sortSales } from '../utils/salesUtils';
-import { useRef } from 'react';
 
 const AdminDashboard = () => {
   const [allSales, setAllSales] = useState([]);
@@ -35,11 +34,7 @@ const AdminDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, deleting: false });
 
-  useEffect(() => {
-    fetchSales();
-  }, []);
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       setLoading(true);
       const response = await salesAPI.getAllSales();
@@ -58,7 +53,11 @@ const AdminDashboard = () => {
       setError("Failed to load records");
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
 
   const applyFilters = (productCode = selectedVariant, size = selectedSize) => {
     const filtered = filterSales(allSales, { productCode, size });

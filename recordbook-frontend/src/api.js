@@ -114,25 +114,33 @@ export const salesAPI = {
   getSalesBySalesmanDate: (salesman, date) => api.get(`/api/sales/salesman-date?salesman=${encodeURIComponent(salesman)}&date=${date}`),
   getSalesBySalesmanRange: (salesman, startDate, endDate) => api.get(`/api/sales/salesman-range?salesman=${encodeURIComponent(salesman)}&startDate=${startDate}&endDate=${endDate}`),
   getSalesByRange: (startDate, endDate) => api.get(`/api/sales/range?startDate=${startDate}&endDate=${endDate}`),
-  createSaleWithExpenses: (data) => api.post('/api/sales/with-expenses', data),
+  getLast7Days: () => api.get('/api/sales/filter/last-7-days'),
+  getLast15Days: () => api.get('/api/sales/filter/last-15-days'),
+  getLast30Days: () => api.get('/api/sales/filter/last-30-days'),
+  getLast90Days: () => api.get('/api/sales/filter/last-90-days'),
+  createSaleWithExpenses: (data) => api.post('/api/sales/sales-expense', data),
   getDailySalesDump: () => api.get('/api/sales/dump'),
-  getProductSalesSummary: () => api.get('/api/sales/summary/product'),
-  getTodayProductSalesSummary: () => api.get('/api/sales/summary/product/today'),
+  getProductSalesSummary: () => api.get('/api/sales/summary/product-sales'),
+  getTodayProductSalesSummary: () => api.get('/api/sales/summary/product-sales/today'),
 };
 
 // Product Sales Summary API
 export const productSalesSummaryAPI = {
-  getTodayProductSales: () => api.get('/api/sales/summary/product/today'),
-  getProductSalesByDate: (date) => api.get(`/api/sales/summary/product/date/${date}`),
-  getProductSalesByMonth: (year, month) => api.get(`/api/sales/summary/product/month/${year}/${month}`),
-  getProductSalesByRange: (startDate, endDate) => api.get(`/api/sales/summary/product/range/${startDate}/${endDate}`),
-  getAllProductSales: () => api.get('/api/sales/summary/product/all'),
+  getTodayProductSales: () => api.get('/api/sales/summary/product-sales/today'),
+  getProductSalesByDate: (date) => api.get(`/api/sales/summary/product-sales/date?date=${date}`),
+  getProductSalesByMonth: (year, month) => api.get(`/api/sales/summary/product-sales/month?year=${year}&month=${month}`),
+  getProductSalesByRange: (startDate, endDate) => api.get(`/api/sales/summary/product-sales/range?startDate=${startDate}&endDate=${endDate}`),
+  getAllProductSales: () => api.get('/api/sales/summary/product-sales'),
+  getLast7DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-7-days'),
+  getLast15DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-15-days'),
+  getLast30DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-30-days'),
+  getLast90DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-90-days'),
 };
 
 // Expense API
 export const expenseAPI = {
   getByDate: (salesman, date) => api.get(`/api/daily-expenses/salesman-date?salesman=${encodeURIComponent(salesman)}&date=${date}`),
-  submitSalesWithExpense: (data) => api.post('/api/sales/with-expenses', data),
+  submitSalesWithExpense: (data) => api.post('/api/sales/sales-expense', data),
   getAll: () => api.get('/api/daily-expenses'),
   getBySalesman: (salesman) => api.get(`/api/daily-expenses/salesman?salesman=${encodeURIComponent(salesman)}`),
   getByDateOnly: (date) => api.get(`/api/daily-expenses/date?date=${date}`),

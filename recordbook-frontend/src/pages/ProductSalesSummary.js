@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, Sector, Tooltip, Legend, ResponsiveContainer } fro
 import { productSalesSummaryAPI, salesmanAPI, expenseAPI, summaryAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
 import { getTodayDate } from '../utils/dateUtils';
+import { cacheUtils } from '../utils/cacheUtils';
 import '../styles/ProductSalesSummary.css';
 
 const ProductSalesSummary = () => {
@@ -43,6 +44,18 @@ const ProductSalesSummary = () => {
         case 'range':
           response = await productSalesSummaryAPI.getProductSalesByRange(startDate, endDate);
           break;
+        case 'last-7-days':
+          response = await productSalesSummaryAPI.getLast7DaysProductSales();
+          break;
+        case 'last-15-days':
+          response = await productSalesSummaryAPI.getLast15DaysProductSales();
+          break;
+        case 'last-30-days':
+          response = await productSalesSummaryAPI.getLast30DaysProductSales();
+          break;
+        case 'last-90-days':
+          response = await productSalesSummaryAPI.getLast90DaysProductSales();
+          break;
         case 'all-time':
           response = await productSalesSummaryAPI.getAllProductSales();
           break;
@@ -64,9 +77,15 @@ const ProductSalesSummary = () => {
 
   const fetchSalesmen = useCallback(async () => {
     try {
-      const res = await salesmanAPI.getAliases();
-      setSalesmen(Array.isArray(res.data) ? res.data : []);
-      if (res.data && res.data.length > 0) setSelectedSalesman(res.data[0]);
+      // Check cache first
+      let aliases = cacheUtils.getSalesmenAliases();
+      if (!aliases) {
+        const res = await salesmanAPI.getAliases();
+        aliases = Array.isArray(res.data) ? res.data : [];
+        cacheUtils.setSalesmenAliases(aliases);
+      }
+      setSalesmen(aliases);
+      if (aliases && aliases.length > 0) setSelectedSalesman(aliases[0]);
     } catch (e) {
       setSalesmen([]);
     }
@@ -74,8 +93,11 @@ const ProductSalesSummary = () => {
 
   useEffect(() => {
     fetchProductSales();
+  }, [fetchProductSales]);
+
+  useEffect(() => {
     fetchSalesmen();
-  }, [fetchProductSales, fetchSalesmen]);
+  }, [fetchSalesmen]);
 
   const fetchExpenseDetail = async () => {
     if (!selectedSalesman || !expenseDate) return;
@@ -219,6 +241,21 @@ const ProductSalesSummary = () => {
           >
             Specific Date
           </button>
+
+          <div className="pss-dropdown-container">
+            <select
+              value={filterType.startsWith('last-') ? filterType : ''}
+              onChange={(e) => e.target.value && setFilterType(e.target.value)}
+              className={`pss-filter-btn pss-dropdown-btn ${filterType.startsWith('last-') ? 'is-active' : ''}`}
+            >
+              <option value="">Last X Days ▼</option>
+              <option value="last-7-days">Last 7 Days</option>
+              <option value="last-15-days">Last 15 Days</option>
+              <option value="last-30-days">Last 30 Days</option>
+              <option value="last-90-days">Last 90 Days</option>
+            </select>
+          </div>
+
 
           <button
             onClick={() => setFilterType('range')}

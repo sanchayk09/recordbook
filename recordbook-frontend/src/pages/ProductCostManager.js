@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { productCostAPI, salesmanAPI, expenseAPI } from '../api';
 import { notifyError, notifySuccess } from '../utils/toast';
 import { getTodayDate } from '../utils/dateUtils';
+import { cacheUtils } from '../utils/cacheUtils';
 import '../styles/ProductCostManager.css';
 
 const ProductCostManager = () => {
@@ -20,12 +21,7 @@ const ProductCostManager = () => {
   const [expenseDetail, setExpenseDetail] = useState(null);
   const [expenseLoading, setExpenseLoading] = useState(false);
 
-  useEffect(() => {
-    fetchCosts();
-    fetchSalesmen();
-  }, []);
-
-  const fetchCosts = async () => {
+  const fetchCosts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await productCostAPI.getAll();
@@ -35,17 +31,28 @@ const ProductCostManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSalesmen = async () => {
+  const fetchSalesmen = useCallback(async () => {
     try {
-      const res = await salesmanAPI.getAliases();
-      setSalesmen(Array.isArray(res.data) ? res.data : []);
-      if (res.data && res.data.length > 0) setSelectedSalesman(res.data[0]);
+      // Check cache first
+      let aliases = cacheUtils.getSalesmenAliases();
+      if (!aliases) {
+        const res = await salesmanAPI.getAliases();
+        aliases = Array.isArray(res.data) ? res.data : [];
+        cacheUtils.setSalesmenAliases(aliases);
+      }
+      setSalesmen(aliases);
+      if (aliases && aliases.length > 0) setSelectedSalesman(aliases[0]);
     } catch (e) {
       setSalesmen([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchCosts();
+    fetchSalesmen();
+  }, [fetchCosts, fetchSalesmen]);
 
   const handleInputChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
