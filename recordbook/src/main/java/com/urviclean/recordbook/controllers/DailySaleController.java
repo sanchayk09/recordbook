@@ -89,71 +89,50 @@ public class DailySaleController {
             record.setVolumeSold(volumeSold);
         }
 
+        // ENFORCE salesman inventory: validate stock BEFORE saving the sale record
+        SalesmanStockSummary salesmanSummary = null;
+        if (record.getSalesmanName() != null && record.getProductCode() != null && record.getQuantity() != null) {
+            salesmanSummary = salesmanStockSummaryRepository
+                .findBySalesmanAliasAndProductCode(record.getSalesmanName(), record.getProductCode())
+                .orElse(new SalesmanStockSummary());
+
+            int currentStock = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
+            int qtySold = record.getQuantity();
+
+            if (currentStock < qtySold) {
+                throw new InvalidInputException(
+                    "Insufficient stock with salesman '" + record.getSalesmanName() + "' for product '"
+                    + record.getProductCode() + "'. Available: " + currentStock + ", Trying to sell: " + qtySold
+                );
+            }
+        }
+
         // Save the sales record
         DailySaleRecord savedRecord = repository.save(record);
 
-        // CRITICAL: When a sale is recorded:
-        // 1. Validate salesman stock exists and sufficient qty in salesman_stock_summary
-        // 2. Update salesman_stock_summary with -qty
-        // 3. Insert salesman_ledger with SOLD transaction
-        // DO NOT update warehouse_ledger (no SOLD_BY_SALESMAN entry anymore)
+        // Update salesman stock and create ledger entry for SOLD
+        if (salesmanSummary != null) {
+            int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
+            int qtySold = record.getQuantity();
+            int salesmanStockAfter = salesmanStockBefore - qtySold;
 
-        if (record.getSalesmanName() != null && record.getProductCode() != null && record.getQuantity() != null) {
-            try {
-                System.out.println(">>> Creating salesman ledger entry for sale:");
-                System.out.println("    Salesman: " + record.getSalesmanName());
-                System.out.println("    Product: " + record.getProductCode());
-                System.out.println("    Quantity: " + record.getQuantity());
+            // Update salesman_stock_summary (decrement by sold quantity)
+            salesmanSummary.setSalesmanAlias(record.getSalesmanName());
+            salesmanSummary.setProductCode(record.getProductCode());
+            salesmanSummary.setCurrentStock(salesmanStockAfter);
+            salesmanSummary.setLastUpdated(LocalDateTime.now());
+            salesmanStockSummaryRepository.save(salesmanSummary);
 
-                // Get current salesman stock for this product
-                SalesmanStockSummary salesmanSummary = salesmanStockSummaryRepository
-                    .findBySalesmanAliasAndProductCode(record.getSalesmanName(), record.getProductCode())
-                    .orElse(new SalesmanStockSummary());
-
-                int salesmanStockBefore = salesmanSummary.getCurrentStock() != null ? salesmanSummary.getCurrentStock() : 0;
-                int qtySold = record.getQuantity();
-                int salesmanStockAfter = salesmanStockBefore - qtySold;
-
-                System.out.println("    Salesman Stock Before: " + salesmanStockBefore);
-                System.out.println("    Salesman Stock After: " + salesmanStockAfter);
-
-                // VALIDATION: Check salesman has enough stock
-                if (salesmanStockAfter < 0) {
-                    throw new InvalidInputException(
-                        "Insufficient stock with salesman. Available: " + salesmanStockBefore + ", Trying to sell: " + qtySold,
-                        "INSUFFICIENT_SALESMAN_STOCK"
-                    );
-                }
-
-                // Update salesman_stock_summary (decrement by sold quantity)
-                salesmanSummary.setSalesmanAlias(record.getSalesmanName());
-                salesmanSummary.setProductCode(record.getProductCode());
-                salesmanSummary.setCurrentStock(salesmanStockAfter);
-                salesmanSummary.setLastUpdated(LocalDateTime.now());
-                salesmanStockSummaryRepository.save(salesmanSummary);
-
-                // Create salesman_ledger entry for SOLD (negative quantity)
-                SalesmanLedger salesmanLedger = new SalesmanLedger(
-                    record.getSalesmanName(),
-                    record.getProductCode(),
-                    SalesmanTxnType.SOLD,
-                    -qtySold,  // Negative because sale reduces salesman stock
-                    "Sold via daily_sale_record id=" + savedRecord.getId(),
-                    "system"
-                );
-                salesmanLedgerRepository.save(salesmanLedger);
-                System.out.println(">>> Salesman ledger entry created successfully!");
-
-            } catch (Exception e) {
-                // Log the error but don't fail the sale record creation
-                System.err.println("!!! ERROR: Failed to update salesman ledger for sale: " + e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println(">>> Skipping salesman ledger update - missing required fields:");
-            System.out.println("    salesmanName: " + record.getSalesmanName());
-            System.out.println("    productCode: " + record.getProductCode());
-            System.out.println("    quantity: " + record.getQuantity());
+            // Create salesman_ledger entry for SOLD (negative quantity)
+            SalesmanLedger salesmanLedger = new SalesmanLedger(
+                record.getSalesmanName(),
+                record.getProductCode(),
+                SalesmanTxnType.SOLD,
+                -qtySold,  // Negative because sale reduces salesman stock
+                "Sold via daily_sale_record id=" + savedRecord.getId(),
+                "system"
+            );
+            salesmanLedgerRepository.save(salesmanLedger);
         }
 
         return savedRecord;

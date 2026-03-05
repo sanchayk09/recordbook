@@ -157,6 +157,7 @@ export const warehouseAPI = {
   getAllLedger: () => api.get('/api/warehouse/ledger'),
   getSalesmenStockSummary: () => api.get('/api/warehouse/salesmen-stock-summary'),
   getSalesmanStock: (salesmanAlias) => api.get(`/api/warehouse/salesman/${salesmanAlias}/stock`),
+  getSalesmanStockByProduct: (salesmanAlias, productCode) => api.get(`/api/warehouse/salesman/${salesmanAlias}/stock?productCode=${encodeURIComponent(productCode)}`),
   getInventoryByProduct: (productCode) => api.get(`/api/warehouse/inventory/${productCode}`),
   getLedgerBySalesman: (salesmanAlias) => api.get(`/api/warehouse/ledger/salesman/${salesmanAlias}`),
   issueStock: (data) => api.post('/api/warehouse/issue', data),

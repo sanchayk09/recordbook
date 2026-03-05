@@ -220,7 +220,7 @@ const AddSalesRecord = ({ onBack }) => {
           mobileNumber: salesJsonData.customer?.mobileNumber,
           routeId: parseInt(selectedRoute),
           villageId: selectedVillage ? parseInt(selectedVillage) : null,
-          salesmanId: parseInt(selectedSalesman),
+          salesmanAlias: selectedSalesman,
           productId: matchingProduct?.productId || null,
           productName: item.productName,
           productCode: item.productCode,
@@ -775,7 +775,7 @@ const AddSalesRecord = ({ onBack }) => {
             >
               <option value="">Select a Salesman</option>
               {salesmen.map(salesman => (
-                <option key={salesman.salesmanId} value={salesman.salesmanId}>
+                <option key={salesman.salesmanId} value={salesman.alias}>
                   {salesman.firstName} {salesman.lastName}
                 </option>
               ))}
@@ -836,7 +836,7 @@ const AddSalesRecord = ({ onBack }) => {
     const saleData = salesJsonData || {};
     const selectedRouteName = routes.find(r => r.routeId === selectedRoute)?.routeName || 'Not selected';
     const selectedVillageName = selectedVillage ? villages.find(v => v.villageId === selectedVillage)?.villageName : 'None';
-    const selectedSalesmanObj = salesmen.find(s => s.salesmanId === selectedSalesman);
+    const selectedSalesmanObj = salesmen.find(s => s.alias === selectedSalesman);
     const selectedSalesmanName = selectedSalesmanObj ? `${selectedSalesmanObj.firstName} ${selectedSalesmanObj.lastName}` : 'Not selected';
 
     return (
