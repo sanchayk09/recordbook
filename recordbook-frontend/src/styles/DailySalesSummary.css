@@ -129,6 +129,15 @@
   min-width: 150px;
 }
 
+.dss-filter-input.text-input {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: Calibri, sans-serif;
+}
+
 .dss-filter-total {
   color: #666;
   font-size: 14px;

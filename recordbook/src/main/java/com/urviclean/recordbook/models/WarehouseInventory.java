@@ -16,7 +16,7 @@ public class WarehouseInventory {
     @Column(name = "warehouse_inventory_id")
     private Long warehouseInventoryId;
 
-    @Column(name = "product_code", nullable = false, unique = true, length = 20)
+    @Column(name = "product_code", nullable = false, unique = true, length = 255)
     private String productCode;
 
     @Column(name = "qty_available", nullable = false)

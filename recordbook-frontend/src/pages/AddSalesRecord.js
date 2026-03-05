@@ -13,6 +13,16 @@ const AddSalesRecord = ({ onBack }) => {
   const [selectedSalesman, setSelectedSalesman] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalData, setErrorModalData] = useState({
+    title: '',
+    message: '',
+    productCode: '',
+    availableStock: 0,
+    requestedQuantity: 0
+  });
+
   // Dropdown data
   const [routes, setRoutes] = useState([]);
   const [villages, setVillages] = useState([]);
@@ -247,7 +257,32 @@ const AddSalesRecord = ({ onBack }) => {
       onBack(); // Return to admin dashboard
     } catch (err) {
       console.error('Error:', err);
-      notifyError('Failed to save sales record: ' + (err.response?.data?.message || err.message));
+
+      // Check if it's a stock validation error
+      const errorMessage = err.response?.data?.message || err.message || '';
+      const errorCode = err.response?.data?.errorCode || '';
+
+      if (errorCode === 'INSUFFICIENT_SALESMAN_STOCK' || errorMessage.includes('Insufficient stock')) {
+        // Extract product code and quantities from error message
+        // Format: "Insufficient stock with salesman. Available: X, Trying to sell: Y"
+        const availableMatch = errorMessage.match(/Available:\s*(\d+)/);
+        const tryingMatch = errorMessage.match(/Trying to sell:\s*(\d+)/);
+
+        // Get the last item that was being processed (the one that failed)
+        const items = salesJsonData.items || [];
+        const failedItem = items[items.length - 1];
+
+        setErrorModalData({
+          title: '⚠️ Stock Validation Error',
+          message: 'The salesman does not have enough stock to complete this sale.',
+          productCode: failedItem?.productCode || 'Unknown',
+          availableStock: availableMatch ? parseInt(availableMatch[1]) : 0,
+          requestedQuantity: tryingMatch ? parseInt(tryingMatch[1]) : failedItem?.quantity || 0
+        });
+        setShowErrorModal(true);
+      } else {
+        notifyError('Failed to save sales record: ' + errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -908,6 +943,106 @@ const AddSalesRecord = ({ onBack }) => {
           >
             {submitting ? 'Submitting...' : 'Submit Sales Record'}
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Error Modal Component
+  if (showErrorModal) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 9999
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '30px',
+          maxWidth: '500px',
+          width: '90%',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          border: '3px solid #dc3545'
+        }}>
+          <h2 style={{
+            color: '#dc3545',
+            marginTop: 0,
+            marginBottom: '15px',
+            fontSize: '20px'
+          }}>
+            {errorModalData.title}
+          </h2>
+
+          <div style={{
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '4px',
+            padding: '15px',
+            marginBottom: '20px'
+          }}>
+            <p style={{ marginTop: 0, marginBottom: '10px', color: '#333' }}>
+              {errorModalData.message}
+            </p>
+
+            <div style={{
+              backgroundColor: 'white',
+              padding: '12px',
+              borderRadius: '4px',
+              border: '1px solid #e0e0e0',
+              marginTop: '10px'
+            }}>
+              <p style={{ marginTop: 0, marginBottom: '8px' }}>
+                <strong style={{ color: '#dc3545' }}>Product Code:</strong> {errorModalData.productCode}
+              </p>
+              <p style={{ marginTop: 0, marginBottom: '8px' }}>
+                <strong style={{ color: '#28a745' }}>Available Stock:</strong> {errorModalData.availableStock} units
+              </p>
+              <p style={{ marginTop: 0, marginBottom: 0 }}>
+                <strong style={{ color: '#dc3545' }}>Requested Quantity:</strong> {errorModalData.requestedQuantity} units
+              </p>
+            </div>
+
+            <div style={{
+              backgroundColor: '#f8f9fa',
+              padding: '10px',
+              borderRadius: '4px',
+              marginTop: '10px',
+              fontSize: '12px',
+              color: '#666'
+            }}>
+              <strong>Solution:</strong> Please reduce the sale quantity or issue more stock to this salesman before proceeding.
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'flex-end'
+          }}>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     );

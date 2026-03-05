@@ -21,6 +21,11 @@ const DailySalesSummary = () => {
   const [endDate, setEndDate] = useState(getTodayDate());
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth()); // YYYY-MM format
   const [selectedProduct, setSelectedProduct] = useState(''); // Empty string means no product filter
+  const [selectedCustomerName, setSelectedCustomerName] = useState(''); // Customer name filter
+  const [selectedVillage, setSelectedVillage] = useState(''); // Village filter
+  const [selectedSalesman, setSelectedSalesman] = useState(''); // Salesman filter
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false); // Show customer autocomplete
+  const [showVillageSuggestions, setShowVillageSuggestions] = useState(false); // Show village autocomplete
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc' or 'desc' for serial number sorting
   const navigate = useNavigate();
 
@@ -81,6 +86,37 @@ const DailySalesSummary = () => {
     return Array.from(products).sort();
   }, [salesRecords]);
 
+  const uniqueCustomerNames = useMemo(() => {
+    const names = new Set(salesRecords.map(record => record.customerName).filter(Boolean));
+    return Array.from(names).sort();
+  }, [salesRecords]);
+
+  const uniqueVillages = useMemo(() => {
+    const villages = new Set(salesRecords.map(record => record.village).filter(Boolean));
+    return Array.from(villages).sort();
+  }, [salesRecords]);
+
+  const uniqueSalesmen = useMemo(() => {
+    const names = new Set(salesRecords.map(record => record.salesmanName).filter(Boolean));
+    return Array.from(names).sort();
+  }, [salesRecords]);
+
+  const filteredCustomerSuggestions = useMemo(() => {
+    if (!selectedCustomerName.trim()) return [];
+    const lowerInput = selectedCustomerName.toLowerCase();
+    return uniqueCustomerNames.filter(name =>
+      name.toLowerCase().includes(lowerInput)
+    );
+  }, [selectedCustomerName, uniqueCustomerNames]);
+
+  const filteredVillageSuggestions = useMemo(() => {
+    if (!selectedVillage.trim()) return [];
+    const lowerInput = selectedVillage.toLowerCase();
+    return uniqueVillages.filter(village =>
+      village.toLowerCase().includes(lowerInput)
+    );
+  }, [selectedVillage, uniqueVillages]);
+
   const getFilteredRecords = useCallback(() => {
     let filtered = salesRecords;
 
@@ -139,8 +175,29 @@ const DailySalesSummary = () => {
       filtered = filtered.filter(record => record.productCode === selectedProduct);
     }
 
+    // Apply customer name filter
+    if (selectedCustomerName) {
+      filtered = filtered.filter(record =>
+        record.customerName && record.customerName.toLowerCase().includes(selectedCustomerName.toLowerCase())
+      );
+    }
+
+    // Apply village filter
+    if (selectedVillage) {
+      filtered = filtered.filter(record =>
+        record.village && record.village.toLowerCase() === selectedVillage.toLowerCase()
+      );
+    }
+
+    // Apply salesman filter
+    if (selectedSalesman) {
+      filtered = filtered.filter(record =>
+        record.salesmanName && record.salesmanName.toLowerCase() === selectedSalesman.toLowerCase()
+      );
+    }
+
     return filtered;
-  }, [salesRecords, filterType, selectedDate, startDate, endDate, selectedMonth, selectedProduct]);
+  }, [salesRecords, filterType, selectedDate, startDate, endDate, selectedMonth, selectedProduct, selectedCustomerName, selectedVillage, selectedSalesman]);
 
   const filteredRecords = useMemo(() => {
     return getFilteredRecords();
@@ -214,7 +271,7 @@ const DailySalesSummary = () => {
 
   const handleSaveEdit = async () => {
     try {
-      await salesAPI.updateSales(editingRecord.id, editFormData);
+      await salesAPI.updateSale(editingRecord.id, editFormData);
       notifySuccess('Sales record updated successfully');
       setSalesRecords(salesRecords.map(r => 
         r.id === editingRecord.id 
@@ -364,6 +421,120 @@ const DailySalesSummary = () => {
             {uniqueProducts.map((product, idx) => (
               <option key={idx} value={product}>
                 {product}
+              </option>
+            ))}
+          </select>
+
+          <label className="dss-filter-input-label" style={{ marginLeft: '20px' }}>Customer Name:</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={selectedCustomerName}
+              onChange={(e) => setSelectedCustomerName(e.target.value)}
+              onFocus={() => setShowCustomerSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 200)}
+              placeholder="Type customer name..."
+              className="dss-filter-input text-input"
+              style={{ width: '200px' }}
+            />
+            {showCustomerSuggestions && selectedCustomerName && filteredCustomerSuggestions.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: '#fff',
+                border: '1px solid #ddd',
+                borderTop: 'none',
+                borderRadius: '0 0 4px 4px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                zIndex: 1000,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                {filteredCustomerSuggestions.map((customer, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setSelectedCustomerName(customer);
+                      setShowCustomerSuggestions(false);
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f0f0',
+                      backgroundColor: idx % 2 === 0 ? '#fafafa' : '#fff'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e8f5e9'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = idx % 2 === 0 ? '#fafafa' : '#fff'}
+                  >
+                    {customer}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <label className="dss-filter-input-label" style={{ marginLeft: '20px' }}>Village:</label>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={selectedVillage}
+              onChange={(e) => setSelectedVillage(e.target.value)}
+              onFocus={() => setShowVillageSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowVillageSuggestions(false), 200)}
+              placeholder="Type village name..."
+              className="dss-filter-input text-input"
+              style={{ width: '200px' }}
+            />
+            {showVillageSuggestions && selectedVillage && filteredVillageSuggestions.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: '#fff',
+                border: '1px solid #ddd',
+                borderTop: 'none',
+                borderRadius: '0 0 4px 4px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                zIndex: 1000,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}>
+                {filteredVillageSuggestions.map((village, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setSelectedVillage(village);
+                      setShowVillageSuggestions(false);
+                    }}
+                    style={{
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f0f0',
+                      backgroundColor: idx % 2 === 0 ? '#fafafa' : '#fff'
+                    }}
+                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e8f5e9'}
+                    onMouseLeave={(e) => e.target.style.backgroundColor = idx % 2 === 0 ? '#fafafa' : '#fff'}
+                  >
+                    {village}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <label className="dss-filter-input-label" style={{ marginLeft: '20px' }}>Salesman:</label>
+          <select
+            value={selectedSalesman}
+            onChange={(e) => setSelectedSalesman(e.target.value)}
+            className="dss-filter-input select-input"
+          >
+            <option value="">All Salesmen</option>
+            {uniqueSalesmen.map((salesman, idx) => (
+              <option key={idx} value={salesman}>
+                {salesman}
               </option>
             ))}
           </select>

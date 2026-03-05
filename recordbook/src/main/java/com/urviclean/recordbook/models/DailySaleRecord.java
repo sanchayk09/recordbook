@@ -38,7 +38,7 @@ public class DailySaleRecord {
     @Column(name = "mobile_number", length = 20)
     private String mobileNumber;
 
-    @Column(name = "product_code", nullable = false, length = 20)
+    @Column(name = "product_code", nullable = false, length = 255)
     private String productCode;
 
     @Column(name = "quantity", nullable = false)

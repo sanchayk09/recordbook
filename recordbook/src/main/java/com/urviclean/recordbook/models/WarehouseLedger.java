@@ -15,7 +15,7 @@ public class WarehouseLedger {
     @Column(name = "warehouse_ledger_id")
     private Long warehouseLedgerId;
 
-    @Column(name = "product_code", nullable = false, length = 20)
+    @Column(name = "product_code", nullable = false, length = 255)
     private String productCode;
 
     @Enumerated(EnumType.STRING)
@@ -31,7 +31,7 @@ public class WarehouseLedger {
     @Column(name = "qty_after", nullable = false)
     private Integer qtyAfter;
 
-    @Column(name = "salesman_alias", length = 100)
+    @Column(name = "salesman_alias", length = 255)
     private String salesmanAlias;
 
     @Column(name = "remarks", columnDefinition = "TEXT")

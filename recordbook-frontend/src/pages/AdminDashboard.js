@@ -185,7 +185,7 @@ const AdminDashboard = () => {
 
       if (editingId) {
         // Update existing record
-        await salesAPI.updateSales(editingId, payload);
+        await salesAPI.updateSale(editingId, payload);
         notifySuccess('Record updated successfully!');
       } else {
         // Create new record
