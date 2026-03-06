@@ -12,10 +12,12 @@ import com.urviclean.recordbook.repositories.SalesmanStockSummaryRepository;
 import com.urviclean.recordbook.utils.CommissionCalculator;
 import com.urviclean.recordbook.utils.VolumeCalculator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Objects;
 
 /**
@@ -37,6 +39,10 @@ public class SalesService {
 
     @Autowired
     private SalesmanLedgerRepository salesmanLedgerRepository;
+
+    @Autowired
+    @Lazy
+    private DailySummaryService dailySummaryService;
 
     /**
      * Create a new sale record.
@@ -108,6 +114,11 @@ public class SalesService {
                 "system"
         ));
 
+        // Recalculate daily summary for this salesman/date after the new sale
+        if (savedRecord.getSaleDate() != null) {
+            dailySummaryService.computeAndPersistSummary(alias, savedRecord.getSaleDate());
+        }
+
         return savedRecord;
     }
 
@@ -140,6 +151,7 @@ public class SalesService {
         String oldAlias = record.getSalesmanName();
         String oldProduct = record.getProductCode();
         Integer oldQty = record.getQuantity();
+        LocalDate oldSaleDate = record.getSaleDate();
 
         // Apply field-level updates (mirrors the existing controller logic)
         if (newDetails.getSlNo() != null) {
@@ -240,7 +252,21 @@ public class SalesService {
             ));
         }
 
-        return dailySaleRecordRepository.save(record);
+        DailySaleRecord updated = dailySaleRecordRepository.save(record);
+
+        // Recalculate summary for the new salesman/date
+        if (updated.getSaleDate() != null) {
+            dailySummaryService.computeAndPersistSummary(updated.getSalesmanName(), updated.getSaleDate());
+        }
+
+        // If salesman or date changed, also recalculate the OLD salesman/date summary
+        boolean salesmanOrDateChanged = !Objects.equals(oldAlias, updated.getSalesmanName())
+                || !Objects.equals(oldSaleDate, updated.getSaleDate());
+        if (salesmanOrDateChanged && oldAlias != null && oldSaleDate != null) {
+            dailySummaryService.computeAndPersistSummary(oldAlias, oldSaleDate);
+        }
+
+        return updated;
     }
 
     /**
@@ -285,6 +311,12 @@ public class SalesService {
             ));
         }
 
+        LocalDate saleDate = record.getSaleDate();
         dailySaleRecordRepository.delete(record);
+
+        // Recalculate summary after sale deletion (expense remains intact)
+        if (alias != null && saleDate != null) {
+            dailySummaryService.computeAndPersistSummary(alias, saleDate);
+        }
     }
 }

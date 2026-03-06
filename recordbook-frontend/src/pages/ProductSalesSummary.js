@@ -22,6 +22,8 @@ const ProductSalesSummary = () => {
   const [expenseDetail, setExpenseDetail] = useState(null);
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [editExpenseAmount, setEditExpenseAmount] = useState('');
+  const [computedSummary, setComputedSummary] = useState(null);
   const [activeQuantitySliceIndex, setActiveQuantitySliceIndex] = useState(null);
   const [activeRevenueSliceIndex, setActiveRevenueSliceIndex] = useState(null);
 
@@ -103,37 +105,45 @@ const ProductSalesSummary = () => {
     if (!selectedSalesman || !expenseDate) return;
     setExpenseLoading(true);
     setExpenseDetail(null);
+    setComputedSummary(null);
     try {
       const res = await expenseAPI.getByDate(selectedSalesman, expenseDate);
       setExpenseDetail(res.data);
+      setEditExpenseAmount(res.data.totalExpense !== undefined ? String(res.data.totalExpense) : '0');
     } catch (err) {
       setExpenseDetail(null);
+      setEditExpenseAmount('0');
     } finally {
       setExpenseLoading(false);
     }
+
+    // Also fetch the existing summary for this salesman/date
+    try {
+      const summaryRes = await summaryAPI.getBySalesmanDate(selectedSalesman, expenseDate);
+      setComputedSummary(summaryRes.data);
+    } catch {
+      setComputedSummary(null);
+    }
   };
 
-  const getSummaryPayload = () => {
-    return {
-      materialCost: productSales.reduce((acc, rec) => acc + (Number(rec.totalCost) || 0), 0),
-      totalExpense: expenseDetail ? Number(expenseDetail.totalExpense) : 0,
-      saleDate: expenseDate,
-      totalAgentCommission: productSales.reduce((acc, rec) => acc + (Number(rec.agentCommission) || 0), 0),
-      salesmanAlias: selectedSalesman,
-      totalRevenue: productSales.reduce((acc, rec) => acc + (Number(rec.totalRevenue) || 0), 0),
-      volumeSold: productSales.reduce((acc, rec) => acc + (Number(rec.volumeSold) || 0), 0),
-      totalQuantity: productSales.reduce((acc, rec) => acc + (Number(rec.totalQuantity) || 0), 0),
-    };
-  };
-
-  const handleSubmitSummary = async () => {
-    const payload = getSummaryPayload();
+  const handleSaveExpense = async () => {
+    if (!selectedSalesman || !expenseDate) {
+      notifyError('Please select a salesman and date first.');
+      return;
+    }
+    const amount = parseFloat(editExpenseAmount);
+    if (isNaN(amount) || amount < 0) {
+      notifyError('Expense amount must be a non-negative number.');
+      return;
+    }
     setSubmitLoading(true);
     try {
-      await summaryAPI.submit(payload);
-      notifySuccess('Summary submitted successfully!');
+      const res = await expenseAPI.upsertAndRecalculate(selectedSalesman, expenseDate, amount);
+      setComputedSummary(res.data);
+      setExpenseDetail({ salesmanAlias: selectedSalesman, expenseDate, totalExpense: amount });
+      notifySuccess('Expense saved and summary recalculated!');
     } catch (err) {
-      notifyError('Failed to submit summary: ' + (err.response?.data?.message || err.message));
+      notifyError('Failed to save expense: ' + (err.response?.data?.message || err.message));
     } finally {
       setSubmitLoading(false);
     }
@@ -489,7 +499,7 @@ const ProductSalesSummary = () => {
       )}
 
       <hr className="pss-divider" />
-      <h3>Show Daily Expense for Salesman</h3>
+      <h3>Daily Expense &amp; Summary</h3>
       <div className="pss-expense-row">
         <label className="pss-label">Salesman:</label>
         <select value={selectedSalesman} onChange={e => setSelectedSalesman(e.target.value)} className="pss-select">
@@ -500,38 +510,71 @@ const ProductSalesSummary = () => {
         <label className="pss-label">Date:</label>
         <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="pss-select" />
         <button onClick={() => setExpenseDate(getTodayDate())} className="pss-expense-btn secondary">Today</button>
-        <button onClick={fetchExpenseDetail} className="pss-expense-btn primary">Show Expense</button>
+        <button onClick={fetchExpenseDetail} className="pss-expense-btn primary">Load</button>
       </div>
+
       {expenseLoading ? (
         <div>Loading expense...</div>
-      ) : expenseDetail ? (
-        <div className="pss-expense-block">
-          <table className="pss-expense-table">
-            <thead>
-              <tr className="pss-expense-head">
-                <th className="pss-th">Salesman</th>
-                <th className="pss-th">Date</th>
-                <th className="pss-th">Total Expense</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="pss-td">{expenseDetail.salesmanAlias}</td>
-                <td className="pss-td">{expenseDetail.expenseDate}</td>
-                <td className="pss-td">{expenseDetail.totalExpense}</td>
-              </tr>
-            </tbody>
-          </table>
-          <button
-            onClick={handleSubmitSummary}
-            disabled={submitLoading}
-            className="pss-submit-btn"
-          >
-            {submitLoading ? 'Submitting...' : 'Submit Summary'}
-          </button>
-        </div>
       ) : (
-        <div className="pss-expense-empty">No expense found for selected salesman and date.</div>
+        <div className="pss-expense-block">
+          <div className="pss-expense-row" style={{ marginTop: '10px' }}>
+            <label className="pss-label">Total Expense (₹):</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={editExpenseAmount}
+              onChange={e => setEditExpenseAmount(e.target.value)}
+              className="pss-select"
+              style={{ width: '140px' }}
+              placeholder="Enter expense"
+            />
+            <button
+              onClick={handleSaveExpense}
+              disabled={submitLoading}
+              className="pss-submit-btn"
+              style={{ marginLeft: '8px' }}
+            >
+              {submitLoading ? 'Saving...' : 'Save Expense & Recalculate'}
+            </button>
+          </div>
+
+          {computedSummary && (
+            <div className="pss-expense-summary" style={{ marginTop: '14px' }}>
+              <h4 style={{ marginBottom: '6px' }}>Computed Summary</h4>
+              <table className="pss-expense-table">
+                <thead>
+                  <tr className="pss-expense-head">
+                    <th className="pss-th">Salesman</th>
+                    <th className="pss-th">Date</th>
+                    <th className="pss-th">Total Qty</th>
+                    <th className="pss-th">Volume Sold</th>
+                    <th className="pss-th">Revenue</th>
+                    <th className="pss-th">Commission</th>
+                    <th className="pss-th">Material Cost</th>
+                    <th className="pss-th">Expense</th>
+                    <th className="pss-th">Net Profit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="pss-td">{computedSummary.salesmanAlias}</td>
+                    <td className="pss-td">{computedSummary.saleDate}</td>
+                    <td className="pss-td">{computedSummary.totalQuantity}</td>
+                    <td className="pss-td">{Number(computedSummary.volumeSold || 0).toFixed(2)}</td>
+                    <td className="pss-td">₹{Number(computedSummary.totalRevenue || 0).toFixed(2)}</td>
+                    <td className="pss-td">₹{Number(computedSummary.totalAgentCommission || 0).toFixed(2)}</td>
+                    <td className="pss-td">₹{Number(computedSummary.materialCost || 0).toFixed(2)}</td>
+                    <td className="pss-td">₹{Number(computedSummary.totalExpense || 0).toFixed(2)}</td>
+                    <td className="pss-td" style={{ fontWeight: 'bold', color: Number(computedSummary.netProfit) >= 0 ? '#2e7d32' : '#c62828' }}>
+                      ₹{Number(computedSummary.netProfit || 0).toFixed(2)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

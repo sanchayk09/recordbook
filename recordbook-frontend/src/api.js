@@ -149,6 +149,9 @@ export const expenseAPI = {
   create: (data) => api.post('/api/daily-expenses', data),
   update: (id, data) => api.put(`/api/daily-expenses/${id}`, data),
   delete: (id) => api.delete(`/api/daily-expenses/${id}`),
+  // Upsert expense and recalculate summary in one call
+  upsertAndRecalculate: (salesmanAlias, expenseDate, totalExpense) =>
+    api.post('/api/daily-expenses/upsert', { salesmanAlias, expenseDate, totalExpense }),
 };
 
 // Warehouse API

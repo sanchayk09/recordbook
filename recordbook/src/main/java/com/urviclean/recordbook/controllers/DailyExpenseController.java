@@ -2,7 +2,10 @@ package com.urviclean.recordbook.controllers;
 
 import com.urviclean.recordbook.models.DailyExpenseRecord;
 import com.urviclean.recordbook.models.DailyExpenseRecordResponse;
+import com.urviclean.recordbook.models.DailyExpenseUpsertRequest;
+import com.urviclean.recordbook.models.DailySummaryResponse;
 import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
+import com.urviclean.recordbook.services.DailyExpenseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +26,9 @@ public class DailyExpenseController {
 
     @Autowired
     private DailyExpenseRecordRepository repository;
+
+    @Autowired
+    private DailyExpenseService dailyExpenseService;
 
     /**
      * Get all daily expense records
@@ -157,6 +163,30 @@ public class DailyExpenseController {
         }
         repository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Upsert daily expense and recalculate summary.
+     *
+     * <p>Creates or updates the total expense for the given salesman and date,
+     * then recomputes the daily_summary (revenue, material cost, net profit, etc.)
+     * and returns the updated summary.</p>
+     *
+     * POST /api/daily-expenses/upsert
+     * Body: { "salesmanAlias": "munnu/mukul", "expenseDate": "2026-03-06", "totalExpense": 600 }
+     */
+    @PostMapping("/upsert")
+    @Operation(summary = "Save/update daily expense and recalculate summary",
+               description = "Creates or updates total expense for a salesman on a date, then recalculates and returns the daily summary")
+    @ApiResponse(responseCode = "200", description = "Expense saved and summary recalculated")
+    public ResponseEntity<DailySummaryResponse> upsertExpenseAndRecalculate(
+            @RequestBody DailyExpenseUpsertRequest request) {
+        DailySummaryResponse summary = dailyExpenseService.saveOrUpdateExpenseAndRecalculate(
+                request.getSalesmanAlias(),
+                request.getExpenseDate(),
+                request.getTotalExpense()
+        );
+        return ResponseEntity.ok(summary);
     }
 }
 

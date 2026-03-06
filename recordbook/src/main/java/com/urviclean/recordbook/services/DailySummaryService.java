@@ -1,9 +1,12 @@
 package com.urviclean.recordbook.services;
 
+import com.urviclean.recordbook.exception.InvalidInputException;
+import com.urviclean.recordbook.models.DailyExpenseRecord;
 import com.urviclean.recordbook.models.DailySalesRecordCalculation;
 import com.urviclean.recordbook.models.DailySummary;
 import com.urviclean.recordbook.models.DailySummaryRequest;
 import com.urviclean.recordbook.models.DailySummaryResponse;
+import com.urviclean.recordbook.repositories.DailyExpenseRecordRepository;
 import com.urviclean.recordbook.repositories.DailySaleRecordRepository;
 import com.urviclean.recordbook.repositories.DailySummaryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +27,72 @@ public class DailySummaryService {
     @Autowired
     private DailySaleRecordRepository dailySaleRecordRepository;
 
+    @Autowired
+    private DailyExpenseRecordRepository dailyExpenseRecordRepository;
+
+    /**
+     * Compute all summary totals from source tables and upsert into daily_summary.
+     *
+     * <ul>
+     *   <li>Sales aggregates (revenue, commission, volume, quantity) come from daily_sale_record.</li>
+     *   <li>Material cost = SUM(quantity * cost) joined with product_cost_manual.</li>
+     *   <li>Expense comes from daily_expense_record (0 if no row found).</li>
+     * </ul>
+     *
+     * This method is called automatically after any sale create/update/delete,
+     * and after expense save/update, to keep daily_summary always up-to-date.
+     *
+     * @param salesmanAlias the salesman alias (maps to daily_sale_record.salesman_name)
+     * @param saleDate      the date for which the summary should be computed
+     * @return the persisted {@link DailySummaryResponse}
+     */
+    @Transactional
+    public DailySummaryResponse computeAndPersistSummary(String salesmanAlias, LocalDate saleDate) {
+        if (salesmanAlias == null || salesmanAlias.isBlank()) {
+            throw new InvalidInputException("salesmanAlias", "must not be blank");
+        }
+        if (saleDate == null) {
+            throw new InvalidInputException("saleDate", "must not be null");
+        }
+
+        // 1. Sales aggregates from daily_sale_record
+        DailySalesRecordCalculation calc = calculateTotalsFromDailySales(salesmanAlias, saleDate);
+
+        // 2. Material cost: SUM(quantity * cost) joined with product_cost_manual
+        BigDecimal materialCost = dailySaleRecordRepository.calculateMaterialCost(salesmanAlias, saleDate);
+        if (materialCost == null) materialCost = BigDecimal.ZERO;
+
+        // 3. Expense from daily_expense_record (0 when no row exists)
+        BigDecimal totalExpense = dailyExpenseRecordRepository
+                .findBySalesmanAliasAndExpenseDate(salesmanAlias, saleDate)
+                .map(DailyExpenseRecord::getTotalExpense)
+                .map(e -> e != null ? e : BigDecimal.ZERO)
+                .orElse(BigDecimal.ZERO);
+
+        // 4. Upsert daily_summary
+        DailySummary summary = dailySummaryRepository
+                .findBySalesmanAliasAndSaleDate(salesmanAlias, saleDate)
+                .orElse(new DailySummary());
+
+        summary.setSalesmanAlias(salesmanAlias);
+        summary.setSaleDate(saleDate);
+        summary.setTotalRevenue(calc.getTotalRevenue());
+        summary.setTotalAgentCommission(calc.getTotalAgentCommission());
+        summary.setMaterialCost(materialCost);
+        summary.setTotalExpense(totalExpense);
+        summary.setVolumeSold(calc.getTotalVolumeSold());
+        summary.setTotalQuantity(calc.getTotalQuantity());
+        // netProfit is recalculated automatically in @PrePersist / @PreUpdate
+
+        DailySummary saved = dailySummaryRepository.save(summary);
+        return new DailySummaryResponse(saved);
+    }
+
     /**
      * Submit/Create daily summary
      * Calculates totalRevenue and totalAgentCommission from daily_sale_record
      * Then calculates net_profit
-     * If summary already exists for this date, it will UPDATE it instead of creating new
+     * If summary already exists for this salesman+date, it will UPDATE it instead of creating new
      */
     @Transactional
     public DailySummaryResponse submitDailySummary(DailySummaryRequest request) {
@@ -42,9 +106,10 @@ public class DailySummaryService {
                 request.saleDate
         );
 
-        // Check if summary already exists for this date (sale_date is unique)
-        List<DailySummary> existingSummaries = dailySummaryRepository.findBySaleDate(request.saleDate);
-        DailySummary summary = existingSummaries.isEmpty() ? null : existingSummaries.get(0);
+        // Check if summary already exists for this salesman+date
+        DailySummary summary = dailySummaryRepository
+                .findBySalesmanAliasAndSaleDate(request.salesmanAlias, request.saleDate)
+                .orElse(null);
 
         if (summary != null) {
             // UPDATE existing record - update all fields
