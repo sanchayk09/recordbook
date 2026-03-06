@@ -12,6 +12,7 @@ const WarehouseDashboard = () => {
   const [salesmenStock, setSalesmenStock] = useState([]); // New state for salesmen stock summary
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedSalesmanCard, setSelectedSalesmanCard] = useState(null); // For viewing salesman details
 
   // New states for improved Issue Stock flow
   const [selectedSalesmanForIssue, setSelectedSalesmanForIssue] = useState('');
@@ -496,6 +497,23 @@ const WarehouseDashboard = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getProductLiters = (product) => {
+    const metric = String(product?.metric || '').toLowerCase();
+    const isLiterMetric = metric === 'lit' || metric === 'ltr' || metric === 'liter' || metric === 'litre';
+    const quantity = Number(product?.quantity) || 0;
+    const metricQuantity = parseFloat(product?.metricQuantity);
+
+    if (!isLiterMetric || Number.isNaN(metricQuantity)) {
+      return 0;
+    }
+
+    return quantity * metricQuantity;
+  };
+
+  const getTotalLiters = (products = []) => {
+    return products.reduce((sum, product) => sum + getProductLiters(product), 0);
+  };
+
 
   return (
     <div className="warehouse-dashboard">
@@ -962,52 +980,105 @@ const WarehouseDashboard = () => {
         {activeTab === 'salesmen-stock' && (
           <div className="tab-content">
             <h2>👥 Salesmen Stock Summary</h2>
-            <p className="subtitle">View which salesman currently has what products</p>
+            <p className="subtitle">Click on a card to view details • Click again to close</p>
 
             {loading ? (
               <p className="loading">Loading salesmen stock...</p>
             ) : salesmenStock.length === 0 ? (
               <p className="no-data">No stock with salesmen currently</p>
             ) : (
-              <div className="salesmen-stock-container">
+              <div className="salesmen-tickets-container">
                 {salesmenStock.map((salesman, idx) => (
-                  <div key={idx} className="salesman-stock-card">
-                    <div className="salesman-header">
-                      <h3>
+                  <div
+                    key={idx}
+                    className={`salesman-ticket ${selectedSalesmanCard?.salesmanAlias === salesman.salesmanAlias ? 'selected' : ''}`}
+                    onClick={() => {
+                      // Toggle: if same card is clicked, close it; otherwise, open the clicked card
+                      if (selectedSalesmanCard?.salesmanAlias === salesman.salesmanAlias) {
+                        setSelectedSalesmanCard(null);
+                      } else {
+                        setSelectedSalesmanCard(salesman);
+                      }
+                    }}
+                  >
+                    <div className="ticket-id">#{idx + 1}</div>
+                    <div className="ticket-header">
+                      <div className="ticket-title">
                         {salesman.firstName} {salesman.lastName}
-                        <span className="salesman-alias">({salesman.salesmanAlias})</span>
-                      </h3>
-                      <div className="salesman-stats">
-                        <span className="stat-badge">
-                          {salesman.totalProducts} {salesman.totalProducts === 1 ? 'Product' : 'Products'}
-                        </span>
-                        <span className="stat-badge total-qty">
-                          Total: {salesman.totalQuantity} pcs
-                        </span>
                       </div>
+                      <div className="ticket-alias">{salesman.salesmanAlias}</div>
                     </div>
-
-                    <div className="products-list">
-                      {salesman.products.map((product, pIdx) => (
-                        <div key={pIdx} className="product-item">
-                          <div className="product-info">
-                            <span className="product-code">{product.productCode}</span>
-                            <span className="product-separator">-</span>
-                            <span className="product-variant">{product.variant || product.productName}</span>
-                          </div>
-                          <div className="product-quantity">
-                            <span className="qty-badge">{product.quantity} pcs</span>
-                            {product.metric === 'lit' && product.metricQuantity && (
-                              <span className="volume-info">
-                                ({(product.quantity * parseFloat(product.metricQuantity)).toFixed(2)} L)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="ticket-footer">
+                      <span className="ticket-badge products">
+                        📦 {salesman.totalProducts}
+                      </span>
+                      <span className="ticket-badge quantity">
+                        {salesman.totalQuantity} pcs
+                      </span>
+                      <span className="ticket-badge quantity">
+                        {getTotalLiters(salesman.products).toFixed(2)} L
+                      </span>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Detail Panel - Shows when a card is selected */}
+            {selectedSalesmanCard && (
+              <div className="salesman-detail-panel">
+                <div className="detail-panel-header">
+                  <div className="detail-header-left">
+                    <h3>
+                      {selectedSalesmanCard.firstName} {selectedSalesmanCard.lastName}
+                      <span className="detail-alias">({selectedSalesmanCard.salesmanAlias})</span>
+                    </h3>
+                    <div className="detail-summary">
+                      <span className="summary-item">
+                        <strong>{selectedSalesmanCard.totalProducts}</strong> {selectedSalesmanCard.totalProducts === 1 ? 'Product' : 'Products'}
+                      </span>
+                      <span className="summary-separator">•</span>
+                      <span className="summary-item">
+                        <strong>{selectedSalesmanCard.totalQuantity}</strong> Total Pieces
+                      </span>
+                      <span className="summary-separator">•</span>
+                      <span className="summary-item">
+                        <strong>{getTotalLiters(selectedSalesmanCard.products).toFixed(2)}</strong> Total Liters
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    className="btn-close-detail"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSalesmanCard(null);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="detail-products-list">
+                  <h4>📋 Product Details</h4>
+                  <div className="detail-products-grid">
+                    {selectedSalesmanCard.products.map((product, pIdx) => (
+                      <div key={pIdx} className="detail-product-card">
+                        <div className="detail-product-header">
+                          <span className="detail-product-code">{product.productCode}</span>
+                          <span className="detail-qty-badge">{product.quantity} pcs</span>
+                        </div>
+                        <div className="detail-product-name">
+                          {product.variant || product.productName}
+                        </div>
+                        {getProductLiters(product) > 0 && (
+                          <div className="detail-volume-info">
+                            📊 Volume: {getProductLiters(product).toFixed(2)} L
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>

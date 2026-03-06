@@ -578,13 +578,13 @@ public class WarehouseService {
 
     /**
      * PUBLIC API METHOD: Get all salesmen with their current stock
-     * Reads from salesman_stock_summary table which is populated by triggers
+     * Reads from salesman_stock_summary table which is the source of truth
      * This is MUCH faster than calculating from ledger
      */
     public List<SalesmanStockDTO> getAllSalesmenWithStock() {
         System.out.println("=== getAllSalesmenWithStock() called ===");
-        // Use salesman_ledger table - calculate current stock from ledger entries
-        return getAllSalesmenWithStockFromLedger();
+        // Use salesman_stock_summary table - read current_stock directly
+        return getAllSalesmenWithStockFromSummary();
     }
 
     /**

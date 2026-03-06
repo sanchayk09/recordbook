@@ -826,161 +826,297 @@
 }
 
 /* Salesmen Stock Summary Styles */
-.salesmen-stock-container {
+/* ============================================================ */
+/* SALESMEN STOCK - JIRA-LIKE TICKET CARDS */
+/* ============================================================ */
+
+.salesmen-tickets-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
   margin-top: 20px;
+  margin-bottom: 30px;
 }
 
-.salesman-stock-card {
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-}
-
-.salesman-stock-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-  border-color: #10b981;
-}
-
-.salesman-header {
-  margin-bottom: 15px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.salesman-header h3 {
-  margin: 0 0 10px 0;
-  color: #1f2937;
-  font-size: 1.3em;
+.salesman-ticket {
+  background: white;
+  border: 2px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-height: 120px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.salesman-alias {
+.salesman-ticket:hover {
+  border-color: #0052cc;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.salesman-ticket.selected {
+  border-color: #0052cc;
+  background: #deebff;
+  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.2);
+}
+
+.ticket-id {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.75em;
+  color: #6b778c;
+  font-weight: 600;
+  background: #f4f5f7;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.ticket-header {
+  margin-bottom: 12px;
+  padding-right: 30px;
+}
+
+.ticket-title {
+  font-size: 0.95em;
+  font-weight: 600;
+  color: #172b4d;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.ticket-alias {
   font-size: 0.8em;
-  color: #6b7280;
+  color: #5e6c84;
   font-weight: 500;
 }
 
-.salesman-stats {
+.ticket-footer {
   display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.ticket-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ticket-badge.products {
+  background: #e9f2ff;
+  color: #0747a6;
+}
+
+.ticket-badge.quantity {
+  background: #e3fcef;
+  color: #006644;
+}
+
+/* Detail Panel */
+.salesman-detail-panel {
+  margin-top: 30px;
+  background: white;
+  border: 2px solid #0052cc;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.detail-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #dfe1e6;
+  margin-bottom: 20px;
+}
+
+.detail-header-left h3 {
+  margin: 0 0 8px 0;
+  color: #172b4d;
+  font-size: 1.5em;
+  display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.stat-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  background: #e0e7ff;
-  color: #4338ca;
-  border-radius: 20px;
-  font-size: 0.85em;
-  font-weight: 600;
+.detail-alias {
+  font-size: 0.7em;
+  color: #5e6c84;
+  font-weight: 500;
 }
 
-.stat-badge.total-qty {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.products-list {
+.detail-summary {
   display: flex;
-  flex-direction: column;
   gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 0.9em;
+  color: #5e6c84;
 }
 
-.product-item {
+.summary-item strong {
+  color: #172b4d;
+  font-weight: 700;
+}
+
+.summary-separator {
+  color: #dfe1e6;
+  margin: 0 4px;
+}
+
+.btn-close-detail {
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  color: #42526e;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2em;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  justify-content: center;
   transition: all 0.2s ease;
 }
 
-.product-item:hover {
-  background: #f9fafb;
-  border-color: #10b981;
-}
-
-.product-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.product-code {
-  font-weight: 700;
-  color: #1f2937;
-  font-size: 1em;
-  padding: 4px 8px;
-  background: #fef3c7;
-  border-radius: 4px;
-}
-
-.product-separator {
-  color: #9ca3af;
-  font-weight: 500;
-}
-
-.product-variant {
-  color: #4b5563;
-  font-size: 0.95em;
-}
-
-.product-quantity {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.qty-badge {
-  padding: 6px 12px;
-  background: #10b981;
+.btn-close-detail:hover {
+  background: #ff5630;
   color: white;
-  border-radius: 20px;
+  border-color: #ff5630;
+}
+
+.detail-products-list {
+  margin-top: 20px;
+}
+
+.detail-products-list h4 {
+  margin: 0 0 16px 0;
+  color: #172b4d;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.detail-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.detail-product-card {
+  background: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.detail-product-card:hover {
+  border-color: #0052cc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.detail-product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.detail-product-code {
   font-weight: 700;
-  font-size: 0.9em;
+  color: #172b4d;
+  font-size: 0.95em;
+  padding: 4px 8px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #dfe1e6;
 }
 
-.volume-info {
+.detail-qty-badge {
+  padding: 4px 10px;
+  background: #00875a;
+  color: white;
+  border-radius: 12px;
+  font-weight: 700;
   font-size: 0.85em;
-  color: #6b7280;
-  font-style: italic;
 }
 
+.detail-product-name {
+  color: #42526e;
+  font-size: 0.95em;
+  margin-bottom: 8px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.detail-volume-info {
+  font-size: 0.85em;
+  color: #5e6c84;
+  padding: 6px 10px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #dfe1e6;
+  display: inline-block;
+}
+
+@media (max-width: 768px) {
+  .salesmen-tickets-container {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .detail-products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-panel-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .btn-close-detail {
+    align-self: flex-end;
+  }
+}
+
+/* General Utility Classes */
 .subtitle {
   color: #6b7280;
   margin-top: -20px;
   margin-bottom: 20px;
   font-size: 1em;
-}
-
-@media (max-width: 768px) {
-  .salesmen-stock-container {
-    grid-template-columns: 1fr;
-  }
-
-  .product-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .product-quantity {
-    align-self: flex-end;
-  }
 }
 
 /* Return Stock Styles */

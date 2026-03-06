@@ -30,7 +30,7 @@ public class SalesmanLedger {
     @Column(name = "salesman_alias", nullable = false, length = 255)
     private String salesmanAlias;
 
-    @Column(name = "product_code", nullable = false, length = 20)
+    @Column(name = "product_code", nullable = false, length = 255)
     private String productCode;
 
     @Enumerated(EnumType.STRING)

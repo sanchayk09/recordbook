@@ -10,7 +10,7 @@ import '../styles/ProductSalesSummary.css';
 const ProductSalesSummary = () => {
   const [productSales, setProductSales] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filterType, setFilterType] = useState('today');
+  const [filterType, setFilterType] = useState('last-30-days');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);

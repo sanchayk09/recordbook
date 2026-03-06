@@ -63,13 +63,27 @@ public class DailyExpenseController {
     @GetMapping("/salesman-date")
     public ResponseEntity<DailyExpenseRecordResponse> getExpenseByAliasAndDate(
             @RequestParam String alias,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return repository.findBySalesmanAliasAndExpenseDate(alias, date)
-                .map(record -> ResponseEntity.ok(new DailyExpenseRecordResponse(record)))
-                .orElseThrow(() -> new com.urviclean.recordbook.exception.ResourceNotFoundException(
-                    "DailyExpenseRecord",
-                    String.format("salesman: %s, date: %s", alias, date)
-                ));
+            @RequestParam String date) {
+        try {
+            // Trim whitespace from parameters
+            String trimmedAlias = alias != null ? alias.trim() : alias;
+            String trimmedDate = date != null ? date.trim() : date;
+
+            // Parse date manually to handle any whitespace issues
+            LocalDate parsedDate = LocalDate.parse(trimmedDate);
+
+            return repository.findBySalesmanAliasAndExpenseDate(trimmedAlias, parsedDate)
+                    .map(record -> ResponseEntity.ok(new DailyExpenseRecordResponse(record)))
+                    .orElseThrow(() -> new com.urviclean.recordbook.exception.ResourceNotFoundException(
+                        "DailyExpenseRecord",
+                        String.format("salesman: %s, date: %s", trimmedAlias, parsedDate)
+                    ));
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new com.urviclean.recordbook.exception.InvalidInputException(
+                "Invalid date format. Expected: YYYY-MM-DD, received: '" + date + "'",
+                "INVALID_DATE_FORMAT"
+            );
+        }
     }
 
     /**
@@ -110,9 +124,9 @@ public class DailyExpenseController {
 
     /**
      * Update an existing daily expense record
-     * PUT /api/daily-expenses?alias=SALESMAN_NAME&date=2024-02-23
+     * PUT /api/daily-expenses/update?alias=SALESMAN_NAME&date=2024-02-23
      */
-    @PutMapping
+    @PutMapping("/update")
     public ResponseEntity<DailyExpenseRecordResponse> updateDailyExpense(
             @RequestParam String alias,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
@@ -128,9 +142,9 @@ public class DailyExpenseController {
 
     /**
      * Delete a daily expense record
-     * DELETE /api/daily-expenses?alias=SALESMAN_NAME&date=2024-02-23
+     * DELETE /api/daily-expenses/delete?alias=SALESMAN_NAME&date=2024-02-23
      */
-    @DeleteMapping
+    @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteDailyExpense(
             @RequestParam String alias,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {

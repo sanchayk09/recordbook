@@ -139,12 +139,12 @@ export const productSalesSummaryAPI = {
 
 // Expense API
 export const expenseAPI = {
-  getByDate: (salesman, date) => api.get(`/api/daily-expenses/salesman-date?salesman=${encodeURIComponent(salesman)}&date=${date}`),
+  getByDate: (salesman, date) => api.get(`/api/daily-expenses/salesman-date?alias=${encodeURIComponent(salesman)}&date=${date}`),
   submitSalesWithExpense: (data) => api.post('/api/sales/sales-expense', data),
   getAll: () => api.get('/api/daily-expenses'),
-  getBySalesman: (salesman) => api.get(`/api/daily-expenses/salesman?salesman=${encodeURIComponent(salesman)}`),
+  getBySalesman: (salesman) => api.get(`/api/daily-expenses/salesman?alias=${encodeURIComponent(salesman)}`),
   getByDateOnly: (date) => api.get(`/api/daily-expenses/date?date=${date}`),
-  getBySalesmanRange: (salesman, startDate, endDate) => api.get(`/api/daily-expenses/salesman-range?salesman=${encodeURIComponent(salesman)}&startDate=${startDate}&endDate=${endDate}`),
+  getBySalesmanRange: (salesman, startDate, endDate) => api.get(`/api/daily-expenses/salesman-range?alias=${encodeURIComponent(salesman)}&startDate=${startDate}&endDate=${endDate}`),
   getByRange: (startDate, endDate) => api.get(`/api/daily-expenses/range?startDate=${startDate}&endDate=${endDate}`),
   create: (data) => api.post('/api/daily-expenses', data),
   update: (id, data) => api.put(`/api/daily-expenses/${id}`, data),

@@ -26,6 +26,8 @@ const DailySalesDump = () => {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [salesmenList, setSalesmenList] = useState([]);
   const [loadingSalesmen, setLoadingSalesmen] = useState(false);
+  const [editingRowIndex, setEditingRowIndex] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
 
   // Memoize loadSalesmen to prevent duplicate calls
   const loadSalesmen = useCallback(async () => {
@@ -87,6 +89,55 @@ const DailySalesDump = () => {
       setSalesData([]);
       setParseError('Invalid JSON. Please paste a valid JSON array.');
     }
+  };
+
+  const handleEditRow = (index, row) => {
+    setEditingRowIndex(index);
+    setEditFormData({ ...row });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRowIndex(null);
+    setEditFormData({});
+  };
+
+  const handleSaveRow = (index) => {
+    const updated = [...salesData];
+    updated[index] = editFormData;
+    setSalesData(updated);
+    setEditingRowIndex(null);
+    setEditFormData({});
+    notifySuccess('Row updated successfully');
+  };
+
+  const handleDeleteRow = (index) => {
+    if (window.confirm('Are you sure you want to delete this row?')) {
+      setSalesData(salesData.filter((_, i) => i !== index));
+      notifySuccess('Row deleted successfully');
+    }
+  };
+
+  const handleAddRow = () => {
+    const newRow = {
+      slNo: (salesData.length > 0 ? Math.max(...salesData.map(r => r.slNo || 0)) : 0) + 1,
+      saleDate: expenseDate,
+      customerName: '',
+      customerType: '',
+      village: '',
+      mobileNumber: '',
+      quantity: 0,
+      rate: 0,
+      revenue: 0,
+      productCode: '',
+    };
+    setSalesData([...salesData, newRow]);
+  };
+
+  const handleEditFieldChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSave = async () => {
@@ -205,18 +256,33 @@ const DailySalesDump = () => {
         )}
       </div>
 
-      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
         <button
           type="button"
-          onClick={handleSave}
-          disabled={saving}
+          onClick={handleAddRow}
+          disabled={salesData.length === 0}
           style={{
-            backgroundColor: saving ? '#9ca3af' : '#1f7a4d',
+            backgroundColor: salesData.length === 0 ? '#9ca3af' : '#66a37f',
             color: '#fff',
             border: 'none',
             padding: '10px 16px',
             borderRadius: '6px',
-            cursor: saving ? 'not-allowed' : 'pointer',
+            cursor: salesData.length === 0 ? 'not-allowed' : 'pointer',
+          }}
+        >
+          + Add Row
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || salesData.length === 0}
+          style={{
+            backgroundColor: saving || salesData.length === 0 ? '#9ca3af' : '#1f7a4d',
+            color: '#fff',
+            border: 'none',
+            padding: '10px 16px',
+            borderRadius: '6px',
+            cursor: saving || salesData.length === 0 ? 'not-allowed' : 'pointer',
           }}
         >
           {saving ? 'Saving...' : 'Save Data'}
@@ -238,37 +304,83 @@ const DailySalesDump = () => {
               <th style={thStyle}>Qty</th>
               <th style={thStyle}>Rate</th>
               <th style={thStyle}>Revenue</th>
+              <th style={thStyle}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {salesData.length === 0 ? (
               <tr>
-                <td style={{ ...tdStyle, textAlign: 'center' }} colSpan={11}>
+                <td style={{ ...tdStyle, textAlign: 'center' }} colSpan={12}>
                   Paste JSON and click “Load JSON” to view data.
                 </td>
               </tr>
             ) : (
               <>
                 {salesData.map((row, index) => (
-                  <tr key={row.slNo ?? index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f7f9fc' }}>
-                    <td style={tdStyle}>{row.slNo}</td>
-                    <td style={tdStyle}>{row.saleDate}</td>
-                    <td style={tdStyle}>{selectedSalesman || ''}</td>
-                    <td style={{ ...tdStyle, textAlign: 'left' }}>{row.customerName}</td>
-                    <td style={tdStyle}>{row.customerType}</td>
-                    <td style={tdStyle}>{row.village}</td>
-                    <td style={tdStyle}>{row.mobileNumber}</td>
-                    <td style={tdStyle}>{row.productCode}</td>
-                    <td style={tdStyle}>{row.quantity}</td>
-                    <td style={tdStyle}>{row.rate}</td>
-                    <td style={tdStyle}>{row.revenue}</td>
-                  </tr>
+                  editingRowIndex === index ? (
+                    <tr key={`edit-${index}`} style={{ backgroundColor: '#fffaed' }}>
+                      <td style={tdStyle}>
+                        <input type="number" value={editFormData.slNo || ''} onChange={(e) => handleEditFieldChange('slNo', parseInt(e.target.value) || '')} style={{ width: '50px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="date" value={editFormData.saleDate || ''} onChange={(e) => handleEditFieldChange('saleDate', e.target.value)} style={{ width: '100px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>{selectedSalesman || ''}</td>
+                      <td style={tdStyle}>
+                        <input type="text" value={editFormData.customerName || ''} onChange={(e) => handleEditFieldChange('customerName', e.target.value)} style={{ width: '100px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="text" value={editFormData.customerType || ''} onChange={(e) => handleEditFieldChange('customerType', e.target.value)} style={{ width: '60px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="text" value={editFormData.village || ''} onChange={(e) => handleEditFieldChange('village', e.target.value)} style={{ width: '80px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="text" value={editFormData.mobileNumber || ''} onChange={(e) => handleEditFieldChange('mobileNumber', e.target.value)} style={{ width: '90px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="text" value={editFormData.productCode || ''} onChange={(e) => handleEditFieldChange('productCode', e.target.value)} style={{ width: '70px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="number" value={editFormData.quantity || ''} onChange={(e) => handleEditFieldChange('quantity', parseFloat(e.target.value) || '')} style={{ width: '60px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="number" value={editFormData.rate || ''} onChange={(e) => handleEditFieldChange('rate', parseFloat(e.target.value) || '')} style={{ width: '60px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <input type="number" value={editFormData.revenue || ''} onChange={(e) => handleEditFieldChange('revenue', parseFloat(e.target.value) || '')} style={{ width: '60px', padding: '4px' }} />
+                      </td>
+                      <td style={tdStyle}>
+                        <button onClick={() => handleSaveRow(index)} style={{ backgroundColor: '#1f7a4d', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Save</button>
+                        <button onClick={handleCancelEdit} style={{ backgroundColor: '#e0e0e0', color: '#333', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginLeft: '4px' }}>Cancel</button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={row.slNo ?? index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f7f9fc' }}>
+                      <td style={tdStyle}>{row.slNo}</td>
+                      <td style={tdStyle}>{row.saleDate}</td>
+                      <td style={tdStyle}>{selectedSalesman || ''}</td>
+                      <td style={{ ...tdStyle, textAlign: 'left' }}>{row.customerName}</td>
+                      <td style={tdStyle}>{row.customerType}</td>
+                      <td style={tdStyle}>{row.village}</td>
+                      <td style={tdStyle}>{row.mobileNumber}</td>
+                      <td style={tdStyle}>{row.productCode}</td>
+                      <td style={tdStyle}>{row.quantity}</td>
+                      <td style={tdStyle}>{row.rate}</td>
+                      <td style={tdStyle}>{row.revenue}</td>
+                      <td style={tdStyle}>
+                        <button onClick={() => handleEditRow(index, row)} style={{ backgroundColor: '#66a37f', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
+                        <button onClick={() => handleDeleteRow(index)} style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginLeft: '4px' }}>Delete</button>
+                      </td>
+                    </tr>
+                  )
                 ))}
                 <tr style={{ backgroundColor: '#eef2f7', fontWeight: 'bold' }}>
                   <td style={tdStyle} colSpan={8}>Totals</td>
                   <td style={tdStyle}>{totals.quantity}</td>
                   <td style={tdStyle}>{totals.rate}</td>
                   <td style={tdStyle}>{totals.revenue}</td>
+                  <td style={tdStyle}></td>
                 </tr>
               </>
             )}

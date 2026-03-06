@@ -26,7 +26,7 @@ const DailySummaryReport = () => {
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [salesmanAlias, setSalesmanAlias] = useState('');
-  const [filterType, setFilterType] = useState('today'); // today, week, month, dateRange
+  const [filterType, setFilterType] = useState('last30days'); // today, week, month, dateRange
   const [saleDate, setSaleDate] = useState(getTodayDate());
   const [startDate, setStartDate] = useState(getTodayDate());
   const [endDate, setEndDate] = useState(getTodayDate());
