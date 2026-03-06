@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -86,4 +87,13 @@ public interface DailySaleRecordRepository extends JpaRepository<DailySaleRecord
     @Query("SELECT SUM(d.revenue) AS totalRevenue, SUM(d.agentCommission) AS totalCommission, SUM(d.volumeSold) AS totalVolumeSold, SUM(d.quantity) AS totalQuantity " +
            "FROM DailySaleRecord d WHERE d.salesmanName = :salesmanAlias AND d.saleDate = :saleDate")
     List<Object[]> calculateSalesSummary(@Param("salesmanAlias") String salesmanAlias, @Param("saleDate") LocalDate saleDate);
+
+    // Calculate material cost = SUM(quantity * product_cost_manual.cost) for salesman/date
+    @Query(value = "SELECT COALESCE(SUM(dsr.quantity * pcm.cost), 0) " +
+                   "FROM daily_sale_record dsr " +
+                   "LEFT JOIN product_cost_manual pcm ON dsr.product_code = pcm.product_code " +
+                   "WHERE dsr.salesman_name = :salesmanAlias AND dsr.sale_date = :saleDate",
+           nativeQuery = true)
+    BigDecimal calculateMaterialCost(@Param("salesmanAlias") String salesmanAlias,
+                                     @Param("saleDate") LocalDate saleDate);
 }
