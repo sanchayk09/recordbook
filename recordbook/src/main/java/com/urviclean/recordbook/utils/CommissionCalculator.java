@@ -11,7 +11,7 @@ public class CommissionCalculator {
      *
      * Rules per unit:
      * - N1/L1: Base 5 rs if rate <= 35, else 5 + 50% of (rate - 35)
-     * - N500: Flat 5 rs if rate <= 30, else 5 + 50% of (rate - 25)
+     * - N500: Flat 5 rs if rate <= 25, else 5 + 50% of (rate - 25)
      * - L500: Base 5 rs if rate <= 25, else 5 + 50% of (rate - 25)
      * - N5/L5: Base 25 rs if rate <= 150, else 25 + 50% of (rate - 150)
      * - Others: 0 rs
@@ -37,8 +37,8 @@ public class CommissionCalculator {
                 perUnitCommission = BigDecimal.valueOf(5).add(excessCommission);
             }
         } else if (code.equals("N500")) {
-            // Flat 5 rs if rate <= 30, else apply commission formula
-            if (rate.compareTo(BigDecimal.valueOf(30)) <= 0) {
+            // Flat 5 rs if rate <= 25, else apply commission formula
+            if (rate.compareTo(BigDecimal.valueOf(25)) <= 0) {
                 perUnitCommission = BigDecimal.valueOf(5);
             } else {
                 // 5 + 50% of (rate - 25)
