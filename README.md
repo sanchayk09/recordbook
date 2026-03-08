@@ -286,42 +286,78 @@ Provides full CRUD for: **vendors**, **products**, **customers**, **salesmen**, 
 
 ## 9. Running Locally
 
-### Prerequisites
+### Option A – Docker Compose (recommended, one command)
+
+Requires only **Docker** and **Docker Compose**. Starts MySQL, the Spring Boot backend, and the React frontend automatically.
+
+```bash
+# From the repository root
+docker compose up --build
+
+# Backend API:   http://localhost:8080
+# Swagger UI:    http://localhost:8080/swagger-ui.html
+# Frontend app:  http://localhost:3000
+```
+
+> The `createtable.sql` schema is applied automatically on first startup via MySQL's `docker-entrypoint-initdb.d` mechanism.
+
+To stop and remove volumes (including the database):
+```bash
+docker compose down -v
+```
+
+---
+
+### Option B – Manual local setup
+
+#### Prerequisites
 
 - Java 17+, Maven 3.8+
 - Node.js 18+, npm
-- MySQL 8
+- MySQL 8 running locally
 
-### Backend
+#### Database
+
+Create the database and apply the schema:
 
 ```bash
-# Configure database credentials
-cp recordbook/src/main/resources/database.properties.template \
-   recordbook/src/main/resources/database.properties
-# Edit database.properties with db.host, db.port, db.name, db.username, db.password
-
-cd recordbook
-./mvnw spring-boot:run
-# API available at http://localhost:8080
-# Swagger UI at http://localhost:8080/swagger-ui.html
+mysql -u root -p -e "CREATE DATABASE urviclean_dev;"
+mysql -u root -p urviclean_dev < recordbook/src/main/resources/createtable.sql
 ```
 
-### Frontend
+#### Backend
+
+`database.properties` is **not** committed to git (it contains credentials). Create it from the template:
+
+```bash
+cp recordbook/src/main/resources/database.properties.template \
+   recordbook/src/main/resources/database.properties
+# Edit database.properties – set db.host, db.port, db.name, db.username, db.password
+```
+
+Then start the backend:
+
+```bash
+cd recordbook
+./mvnw spring-boot:run
+# API available at:   http://localhost:8080
+# Swagger UI at:      http://localhost:8080/swagger-ui.html
+```
+
+#### Frontend
+
+The proxy in `package.json` forwards `/api/` calls to `http://localhost:8080`, so no `.env.local` is needed for local development:
 
 ```bash
 cd recordbook-frontend
-cp .env.example .env.local
-# Set REACT_APP_API_BASE_URL=http://localhost:8080
-
 npm install
 npm start
 # App available at http://localhost:3000
 ```
 
-### Database
-
-Apply the schema from:
+If you need to point the frontend at a different backend host, create `.env.local`:
 
 ```bash
-mysql -u <user> -p <dbname> < recordbook/src/main/resources/createtable.sql
+# recordbook-frontend/.env.local
+REACT_APP_API_URL=http://localhost:8080
 ```

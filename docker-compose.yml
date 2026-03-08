@@ -1,0 +1,79 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────
+#  RecordBook – local development stack
+#
+#  Usage:
+#    docker compose up --build          # first run (builds images)
+#    docker compose up                  # subsequent runs
+#    docker compose down -v             # stop and remove volumes
+#
+#  Services:
+#    db        → MySQL 8  (port 3306)
+#    backend   → Spring Boot (port 8080)  http://localhost:8080/swagger-ui.html
+#    frontend  → React    (port 3000)      http://localhost:3000
+# ─────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── MySQL 8 ──────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: recordbook-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: recordbook_pass
+      MYSQL_DATABASE: urviclean_dev
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./recordbook/src/main/resources/createtable.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-precordbook_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Spring Boot backend ───────────────────────────────────────
+  backend:
+    build:
+      context: ./recordbook
+      dockerfile: Dockerfile
+    container_name: recordbook-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: urviclean_dev
+      DB_USERNAME: root
+      DB_PASSWORD: recordbook_pass
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ── React frontend ────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./recordbook-frontend
+      dockerfile: Dockerfile
+    container_name: recordbook-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+
+volumes:
+  db_data:
