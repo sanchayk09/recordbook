@@ -6,7 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "daily_summary")
+@Table(name = "daily_summary",
+       uniqueConstraints = @UniqueConstraint(name = "uk_daily_summary", columnNames = {"salesman_alias", "sale_date"}))
 public class DailySummary {
 
     @Id
@@ -17,7 +18,7 @@ public class DailySummary {
     @Column(name = "salesman_alias", nullable = false)
     private String salesmanAlias;
 
-    @Column(name = "sale_date", nullable = false, unique = true)
+    @Column(name = "sale_date", nullable = false)
     private LocalDate saleDate;
 
     @Column(name = "total_revenue", nullable = false)

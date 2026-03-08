@@ -2,12 +2,20 @@ package com.urviclean.recordbook.models;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "daily_sale_record")
+@Table(name = "daily_sale_record", indexes = {
+    @Index(name = "idx_daily_sale_date", columnList = "sale_date"),
+    @Index(name = "idx_daily_sale_salesman_date", columnList = "salesman_name, sale_date"),
+    @Index(name = "idx_daily_sale_product_code", columnList = "product_code")
+})
 public class DailySaleRecord {
 
     @Id
@@ -15,19 +23,24 @@ public class DailySaleRecord {
     @Column(name = "id")
     private Long id;
 
+    @NotNull
     @Column(name = "sl_no", nullable = false)
     private Integer slNo;
 
+    @NotNull
     @Column(name = "sale_date", nullable = false)
     private LocalDate saleDate;
 
+    @NotBlank
     @JsonAlias({"salesmanId", "salesmanAlias"})
     @Column(name = "salesman_name", nullable = false, length = 100)
     private String salesmanName;
 
+    @NotBlank
     @Column(name = "customer_name", nullable = false, length = 150)
     private String customerName;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_type", nullable = false, length = 20)
     private DailySaleCustomerType customerType;
@@ -38,12 +51,17 @@ public class DailySaleRecord {
     @Column(name = "mobile_number", length = 20)
     private String mobileNumber;
 
+    @NotBlank
     @Column(name = "product_code", nullable = false, length = 255)
     private String productCode;
 
+    @NotNull
+    @Min(1)
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
     @Column(name = "rate", nullable = false, precision = 10, scale = 2)
     private BigDecimal rate;
 

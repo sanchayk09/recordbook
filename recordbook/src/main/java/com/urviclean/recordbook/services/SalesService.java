@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -37,6 +38,23 @@ public class SalesService {
 
     @Autowired
     private SalesmanLedgerRepository salesmanLedgerRepository;
+
+    /**
+     * Return all sale records (read-only, no stock changes).
+     */
+    public List<DailySaleRecord> getAllSales() {
+        return dailySaleRecordRepository.findAll();
+    }
+
+    /**
+     * Return a single sale record by ID.
+     *
+     * @throws ResourceNotFoundException if the sale does not exist
+     */
+    public DailySaleRecord getById(long saleId) {
+        return dailySaleRecordRepository.findById(saleId)
+                .orElseThrow(() -> new ResourceNotFoundException("DailySaleRecord", "id", saleId));
+    }
 
     /**
      * Create a new sale record.

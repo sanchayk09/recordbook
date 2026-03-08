@@ -2,7 +2,7 @@ package com.urviclean.recordbook.controllers;
 
 import com.urviclean.recordbook.models.Route;
 import com.urviclean.recordbook.models.RouteVillage;
-import com.urviclean.recordbook.services.AdminService;
+import com.urviclean.recordbook.services.RouteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,72 +20,64 @@ import java.util.List;
 public class RouteController {
 
     @Autowired
-    private AdminService adminService;
+    private RouteService routeService;
 
     // Route endpoints
     @GetMapping
     @Operation(summary = "List all routes", description = "Get all sales routes")
     public List<Route> listRoutes() {
-        return adminService.getAllRoutes();
+        return routeService.getAllRoutes();
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get route by ID", description = "Get a specific route")
     public ResponseEntity<Route> getRoute(
             @Parameter(description = "Route ID", required = true) @PathVariable Long id) {
-        Route route = adminService.getRouteById(id);
-        if (route == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(route);
+        return ResponseEntity.ok(routeService.getRouteById(id));
     }
 
     @PostMapping("/")
     public Route createRoute(@RequestBody Route route) {
-        return adminService.saveRoute(route);
+        return routeService.saveRoute(route);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Route> updateRoute(@PathVariable Long id, @RequestBody Route newDetails) {
-        Route existing = adminService.getRouteById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setRouteId(id);
-        return ResponseEntity.ok(adminService.saveRoute(newDetails));
+        return ResponseEntity.ok(routeService.saveRoute(newDetails));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRoute(@PathVariable Long id) {
-        adminService.deleteRoute(id);
+        routeService.deleteRoute(id);
         return ResponseEntity.noContent().build();
     }
 
     // Route Villages endpoints
     @GetMapping("/villages")
     public List<RouteVillage> listVillages() {
-        return adminService.getAllRouteVillages();
+        return routeService.getAllRouteVillages();
     }
 
     @GetMapping("/villages/{id}")
     public ResponseEntity<RouteVillage> getVillage(@PathVariable Long id) {
-        RouteVillage village = adminService.getRouteVillageById(id);
-        if (village == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(village);
+        return ResponseEntity.ok(routeService.getRouteVillageById(id));
     }
 
     @PostMapping("/villages")
     public RouteVillage createVillage(@RequestBody RouteVillage village) {
-        return adminService.saveRouteVillage(village);
+        return routeService.saveRouteVillage(village);
     }
 
     @PutMapping("/villages/{id}")
     public ResponseEntity<RouteVillage> updateVillage(@PathVariable Long id, @RequestBody RouteVillage newDetails) {
-        RouteVillage existing = adminService.getRouteVillageById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setVillageId(id);
-        return ResponseEntity.ok(adminService.saveRouteVillage(newDetails));
+        return ResponseEntity.ok(routeService.saveRouteVillage(newDetails));
     }
 
     @DeleteMapping("/villages/{id}")
     public ResponseEntity<Void> deleteVillage(@PathVariable Long id) {
-        adminService.deleteRouteVillage(id);
+        routeService.deleteRouteVillage(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,12 +1,10 @@
 package com.urviclean.recordbook.controllers;
 
 import com.urviclean.recordbook.models.*;
-import com.urviclean.recordbook.services.AdminService;
+import com.urviclean.recordbook.services.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,142 +22,151 @@ import java.util.List;
 public class AdminController {
 
     @Autowired
-    private AdminService adminService;
+    private SalesService salesService;
 
-    // Sales endpoints (now using DailySaleRecord)
+    @Autowired
+    private VendorService vendorService;
+
+    @Autowired
+    private ProductService productService;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private SalesmanService salesmanService;
+
+    @Autowired
+    private ProductionService productionService;
+
+    @Autowired
+    private RouteService routeService;
+
+    // ---- Sales endpoints (delegate to SalesService for stock-aware operations) ----
+
     @GetMapping("/sales")
     @Operation(summary = "List all daily sales", description = "Get all daily sale records")
     public List<DailySaleRecord> listSales() {
-        return adminService.getAllDailySales();
+        return salesService.getAllSales();
     }
 
     @GetMapping("/sales/{id}")
     @Operation(summary = "Get daily sale by ID", description = "Get a specific daily sale record")
     public ResponseEntity<DailySaleRecord> getSale(
             @Parameter(description = "Sale ID", required = true) @PathVariable Long id) {
-        DailySaleRecord sale = adminService.getDailySaleById(id);
-        if (sale == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(sale);
+        return ResponseEntity.ok(salesService.getById(id));
     }
 
     @PostMapping("/sales")
+    @Operation(summary = "Create a daily sale", description = "Creates a sale and decrements salesman stock atomically")
     public DailySaleRecord createSale(@RequestBody DailySaleRecord sale) {
-        return adminService.saveDailySale(sale);
+        return salesService.createSale(sale);
     }
 
     @PutMapping("/sales/{id}")
-    public ResponseEntity<DailySaleRecord> updateSale(@PathVariable Long id, @RequestBody DailySaleRecord newDetails) {
-        DailySaleRecord existing = adminService.getDailySaleById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
-        newDetails.setId(id);
-        return ResponseEntity.ok(adminService.saveDailySale(newDetails));
+    @Operation(summary = "Update a daily sale", description = "Updates a sale and reconciles salesman stock")
+    public DailySaleRecord updateSale(@PathVariable Long id, @RequestBody DailySaleRecord newDetails) {
+        return salesService.updateSale(id, newDetails);
     }
 
     @DeleteMapping("/sales/{id}")
+    @Operation(summary = "Delete (void) a daily sale", description = "Voids a sale and restores salesman stock")
     public ResponseEntity<Void> deleteSale(@PathVariable Long id) {
-        adminService.deleteDailySale(id);
+        salesService.voidSale(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Vendor endpoints
+    // ---- Vendor endpoints ----
+
     @GetMapping("/vendors")
-    public List<Vendor> listVendors() { return adminService.getAllVendors(); }
+    public List<Vendor> listVendors() { return vendorService.getAll(); }
 
     @GetMapping("/vendors/{id}")
     public ResponseEntity<Vendor> getVendor(@PathVariable Long id) {
-        Vendor v = adminService.getVendorById(id);
-        if (v == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(v);
+        return ResponseEntity.ok(vendorService.getById(id));
     }
 
     @PostMapping("/vendors")
-    public Vendor createVendor(@RequestBody Vendor vendor) { return adminService.saveVendor(vendor); }
+    public Vendor createVendor(@RequestBody Vendor vendor) { return vendorService.save(vendor); }
 
     @PutMapping("/vendors/{id}")
     public ResponseEntity<Vendor> updateVendor(@PathVariable Long id, @RequestBody Vendor newDetails) {
-        Vendor existing = adminService.getVendorById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setVendorId(id);
-        return ResponseEntity.ok(adminService.saveVendor(newDetails));
+        return ResponseEntity.ok(vendorService.save(newDetails));
     }
 
     @DeleteMapping("/vendors/{id}")
     public ResponseEntity<Void> deleteVendor(@PathVariable Long id) {
-        adminService.deleteVendor(id);
+        vendorService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Product endpoints
+    // ---- Product endpoints ----
+
     @GetMapping("/products")
-    public List<Product> listProducts() { return adminService.getAllProducts(); }
+    public List<Product> listProducts() { return productService.getAll(); }
 
     @GetMapping("/products/{id}")
     public ResponseEntity<Product> getProduct(@PathVariable Long id) {
-        Product p = adminService.getProductById(id);
-        if (p == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(p);
+        return ResponseEntity.ok(productService.getById(id));
     }
 
     @PostMapping("/products")
-    public Product createProduct(@RequestBody Product product) { return adminService.saveProduct(product); }
+    public Product createProduct(@RequestBody Product product) { return productService.save(product); }
 
     @PutMapping("/products/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product newDetails) {
-        Product existing = adminService.getProductById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setProductId(id);
-        return ResponseEntity.ok(adminService.saveProduct(newDetails));
+        return ResponseEntity.ok(productService.save(newDetails));
     }
 
     @DeleteMapping("/products/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        adminService.deleteProduct(id);
+        productService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Customer endpoints
+    // ---- Customer endpoints ----
+
     @GetMapping("/customers")
-    public List<Customer> listCustomers() { return adminService.getAllCustomers(); }
+    public List<Customer> listCustomers() { return customerService.getAll(); }
 
     @GetMapping("/customers/{id}")
     public ResponseEntity<Customer> getCustomer(@PathVariable Long id) {
-        Customer c = adminService.getCustomerById(id);
-        if (c == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(c);
+        return ResponseEntity.ok(customerService.getById(id));
     }
 
     @PostMapping("/customers")
-    public Customer createCustomer(@RequestBody Customer customer) { return adminService.saveCustomer(customer); }
+    public Customer createCustomer(@RequestBody Customer customer) { return customerService.save(customer); }
 
     @PutMapping("/customers/{id}")
     public ResponseEntity<Customer> updateCustomer(@PathVariable Long id, @RequestBody Customer newDetails) {
-        Customer existing = adminService.getCustomerById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setCustomerId(id);
-        return ResponseEntity.ok(adminService.saveCustomer(newDetails));
+        return ResponseEntity.ok(customerService.save(newDetails));
     }
 
     @DeleteMapping("/customers/{id}")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
-        adminService.deleteCustomer(id);
+        customerService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Salesman endpoints
+    // ---- Salesman endpoints ----
+
     @GetMapping("/salesmen")
-    public List<Salesman> listSalesmen() { return adminService.getAllSalesmen(); }
+    public List<Salesman> listSalesmen() { return salesmanService.getAll(); }
 
     @GetMapping("/salesmen/aliases")
     public List<String> getSalesmanAliases() {
-        return adminService.getAllSalesmen().stream()
+        return salesmanService.getAll().stream()
                 .map(Salesman::getAlias)
                 .toList();
     }
 
     @GetMapping("/salesmen/lookup")
     public ResponseEntity<List<Long>> getSalesmanIdsByName(@RequestParam String firstName,
-                                                          @RequestParam String lastName) {
-        List<Long> ids = adminService.getSalesmanIdsByName(firstName, lastName);
+                                                           @RequestParam String lastName) {
+        List<Long> ids = salesmanService.getIdsByName(firstName, lastName);
         if (ids.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -168,277 +175,246 @@ public class AdminController {
 
     @GetMapping("/salesmen/{id}")
     public ResponseEntity<Salesman> getSalesman(@PathVariable Long id) {
-        Salesman s = adminService.getSalesmanById(id);
-        if (s == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(s);
+        return ResponseEntity.ok(salesmanService.getById(id));
     }
 
     @PostMapping("/salesmen")
-    public Salesman createSalesman(@RequestBody Salesman salesman) { return adminService.saveSalesman(salesman); }
+    public Salesman createSalesman(@RequestBody Salesman salesman) { return salesmanService.save(salesman); }
 
     @PutMapping("/salesmen/{id}")
     public ResponseEntity<Salesman> updateSalesman(@PathVariable Long id, @RequestBody Salesman newDetails) {
-        Salesman existing = adminService.getSalesmanById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setSalesmanId(id);
-        return ResponseEntity.ok(adminService.saveSalesman(newDetails));
+        return ResponseEntity.ok(salesmanService.save(newDetails));
     }
 
     @DeleteMapping("/salesmen/{id}")
     public ResponseEntity<Void> deleteSalesman(@PathVariable Long id) {
-        adminService.deleteSalesman(id);
+        salesmanService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Chemicals endpoints
+    // ---- Chemical endpoints ----
+
     @GetMapping("/chemicals")
-    public List<Chemical> listChemicals() { return adminService.getAllChemicals(); }
+    public List<Chemical> listChemicals() { return productionService.getAllChemicals(); }
 
     @GetMapping("/chemicals/{id}")
     public ResponseEntity<Chemical> getChemical(@PathVariable Long id) {
-        Chemical c = adminService.getChemicalById(id);
-        if (c == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(c);
+        return ResponseEntity.ok(productionService.getChemicalById(id));
     }
 
     @PostMapping("/chemicals")
-    public Chemical createChemical(@RequestBody Chemical chemical) { return adminService.saveChemical(chemical); }
+    public Chemical createChemical(@RequestBody Chemical chemical) { return productionService.saveChemical(chemical); }
 
     @PutMapping("/chemicals/{id}")
     public ResponseEntity<Chemical> updateChemical(@PathVariable Long id, @RequestBody Chemical newDetails) {
-        Chemical existing = adminService.getChemicalById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setChemicalId(id);
-        return ResponseEntity.ok(adminService.saveChemical(newDetails));
+        return ResponseEntity.ok(productionService.saveChemical(newDetails));
     }
 
     @DeleteMapping("/chemicals/{id}")
     public ResponseEntity<Void> deleteChemical(@PathVariable Long id) {
-        adminService.deleteChemical(id);
+        productionService.deleteChemical(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Warehouse endpoints
+    // ---- Warehouse endpoints ----
+
     @GetMapping("/warehouses")
-    public List<Warehouse> listWarehouses() { return adminService.getAllWarehouses(); }
+    public List<Warehouse> listWarehouses() { return productionService.getAllWarehouses(); }
 
     @GetMapping("/warehouses/{id}")
     public ResponseEntity<Warehouse> getWarehouse(@PathVariable Long id) {
-        Warehouse w = adminService.getWarehouseById(id);
-        if (w == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(w);
+        return ResponseEntity.ok(productionService.getWarehouseById(id));
     }
 
     @PostMapping("/warehouses")
-    public Warehouse createWarehouse(@RequestBody Warehouse warehouse) { return adminService.saveWarehouse(warehouse); }
+    public Warehouse createWarehouse(@RequestBody Warehouse warehouse) { return productionService.saveWarehouse(warehouse); }
 
     @PutMapping("/warehouses/{id}")
     public ResponseEntity<Warehouse> updateWarehouse(@PathVariable Long id, @RequestBody Warehouse newDetails) {
-        Warehouse existing = adminService.getWarehouseById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setWarehouseId(id);
-        return ResponseEntity.ok(adminService.saveWarehouse(newDetails));
+        return ResponseEntity.ok(productionService.saveWarehouse(newDetails));
     }
 
     @DeleteMapping("/warehouses/{id}")
     public ResponseEntity<Void> deleteWarehouse(@PathVariable Long id) {
-        adminService.deleteWarehouse(id);
+        productionService.deleteWarehouse(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Chemical Inventory endpoints
+    // ---- Chemical Inventory endpoints ----
+
     @GetMapping("/chemical-inventory")
-    public List<ChemicalInventory> listChemicalInventory() { return adminService.getAllChemicalInventory(); }
+    public List<ChemicalInventory> listChemicalInventory() { return productionService.getAllChemicalInventory(); }
 
     @GetMapping("/chemical-inventory/{id}")
     public ResponseEntity<ChemicalInventory> getChemicalInventory(@PathVariable Long id) {
-        ChemicalInventory ci = adminService.getChemicalInventoryById(id);
-        if (ci == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(ci);
+        return ResponseEntity.ok(productionService.getChemicalInventoryById(id));
     }
 
     @PostMapping("/chemical-inventory")
-    public ChemicalInventory createChemicalInventory(@RequestBody ChemicalInventory inventory) { return adminService.saveChemicalInventory(inventory); }
+    public ChemicalInventory createChemicalInventory(@RequestBody ChemicalInventory inventory) { return productionService.saveChemicalInventory(inventory); }
 
     @PutMapping("/chemical-inventory/{id}")
     public ResponseEntity<ChemicalInventory> updateChemicalInventory(@PathVariable Long id, @RequestBody ChemicalInventory newDetails) {
-        ChemicalInventory existing = adminService.getChemicalInventoryById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setInventoryId(id);
-        return ResponseEntity.ok(adminService.saveChemicalInventory(newDetails));
+        return ResponseEntity.ok(productionService.saveChemicalInventory(newDetails));
     }
 
     @DeleteMapping("/chemical-inventory/{id}")
     public ResponseEntity<Void> deleteChemicalInventory(@PathVariable Long id) {
-        adminService.deleteChemicalInventory(id);
+        productionService.deleteChemicalInventory(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Product Recipes endpoints
+    // ---- Product Recipes endpoints ----
+
     @GetMapping("/product-recipes")
-    public List<ProductRecipe> listProductRecipes() { return adminService.getAllProductRecipes(); }
+    public List<ProductRecipe> listProductRecipes() { return productionService.getAllProductRecipes(); }
 
     @GetMapping("/product-recipes/{id}")
     public ResponseEntity<ProductRecipe> getProductRecipe(@PathVariable Long id) {
-        ProductRecipe pr = adminService.getProductRecipeById(id);
-        if (pr == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(pr);
+        return ResponseEntity.ok(productionService.getProductRecipeById(id));
     }
 
     @PostMapping("/product-recipes")
-    public ProductRecipe createProductRecipe(@RequestBody ProductRecipe recipe) { return adminService.saveProductRecipe(recipe); }
+    public ProductRecipe createProductRecipe(@RequestBody ProductRecipe recipe) { return productionService.saveProductRecipe(recipe); }
 
     @PutMapping("/product-recipes/{id}")
     public ResponseEntity<ProductRecipe> updateProductRecipe(@PathVariable Long id, @RequestBody ProductRecipe newDetails) {
-        ProductRecipe existing = adminService.getProductRecipeById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setRecipeId(id);
-        return ResponseEntity.ok(adminService.saveProductRecipe(newDetails));
+        return ResponseEntity.ok(productionService.saveProductRecipe(newDetails));
     }
 
     @DeleteMapping("/product-recipes/{id}")
     public ResponseEntity<Void> deleteProductRecipe(@PathVariable Long id) {
-        adminService.deleteProductRecipe(id);
+        productionService.deleteProductRecipe(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Production Batches endpoints
+    // ---- Production Batches endpoints ----
+
     @GetMapping("/production-batches")
-    public List<ProductionBatch> listProductionBatches() { return adminService.getAllProductionBatches(); }
+    public List<ProductionBatch> listProductionBatches() { return productionService.getAllProductionBatches(); }
 
     @GetMapping("/production-batches/{id}")
     public ResponseEntity<ProductionBatch> getProductionBatch(@PathVariable Long id) {
-        ProductionBatch pb = adminService.getProductionBatchById(id);
-        if (pb == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(pb);
+        return ResponseEntity.ok(productionService.getProductionBatchById(id));
     }
 
     @PostMapping("/production-batches")
-    public ProductionBatch createProductionBatch(@RequestBody ProductionBatch batch) { return adminService.saveProductionBatch(batch); }
+    public ProductionBatch createProductionBatch(@RequestBody ProductionBatch batch) { return productionService.saveProductionBatch(batch); }
 
     @PutMapping("/production-batches/{id}")
     public ResponseEntity<ProductionBatch> updateProductionBatch(@PathVariable Long id, @RequestBody ProductionBatch newDetails) {
-        ProductionBatch existing = adminService.getProductionBatchById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setBatchId(id);
-        return ResponseEntity.ok(adminService.saveProductionBatch(newDetails));
+        return ResponseEntity.ok(productionService.saveProductionBatch(newDetails));
     }
 
     @DeleteMapping("/production-batches/{id}")
     public ResponseEntity<Void> deleteProductionBatch(@PathVariable Long id) {
-        adminService.deleteProductionBatch(id);
+        productionService.deleteProductionBatch(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Batch Consumption endpoints
+    // ---- Batch Consumption endpoints ----
+
     @GetMapping("/batch-consumption")
-    public List<BatchConsumption> listBatchConsumptions() { return adminService.getAllBatchConsumptions(); }
+    public List<BatchConsumption> listBatchConsumptions() { return productionService.getAllBatchConsumptions(); }
 
     @GetMapping("/batch-consumption/{id}")
     public ResponseEntity<BatchConsumption> getBatchConsumption(@PathVariable Long id) {
-        BatchConsumption bc = adminService.getBatchConsumptionById(id);
-        if (bc == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(bc);
+        return ResponseEntity.ok(productionService.getBatchConsumptionById(id));
     }
 
     @PostMapping("/batch-consumption")
-    public BatchConsumption createBatchConsumption(@RequestBody BatchConsumption consumption) { return adminService.saveBatchConsumption(consumption); }
+    public BatchConsumption createBatchConsumption(@RequestBody BatchConsumption consumption) { return productionService.saveBatchConsumption(consumption); }
 
     @PutMapping("/batch-consumption/{id}")
     public ResponseEntity<BatchConsumption> updateBatchConsumption(@PathVariable Long id, @RequestBody BatchConsumption newDetails) {
-        BatchConsumption existing = adminService.getBatchConsumptionById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setConsumptionId(id);
-        return ResponseEntity.ok(adminService.saveBatchConsumption(newDetails));
+        return ResponseEntity.ok(productionService.saveBatchConsumption(newDetails));
     }
 
     @DeleteMapping("/batch-consumption/{id}")
     public ResponseEntity<Void> deleteBatchConsumption(@PathVariable Long id) {
-        adminService.deleteBatchConsumption(id);
+        productionService.deleteBatchConsumption(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Routes endpoints
+    // ---- Route endpoints ----
+
     @GetMapping("/routes")
-    public List<Route> listRoutes() { return adminService.getAllRoutes(); }
+    public List<Route> listRoutes() { return routeService.getAllRoutes(); }
 
     @GetMapping("/routes/{id}")
     public ResponseEntity<Route> getRoute(@PathVariable Long id) {
-        Route r = adminService.getRouteById(id);
-        if (r == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(r);
+        return ResponseEntity.ok(routeService.getRouteById(id));
     }
 
     @PostMapping("/routes")
-    public Route createRoute(@RequestBody Route route) { return adminService.saveRoute(route); }
+    public Route createRoute(@RequestBody Route route) { return routeService.saveRoute(route); }
 
     @PutMapping("/routes/{id}")
     public ResponseEntity<Route> updateRoute(@PathVariable Long id, @RequestBody Route newDetails) {
-        Route existing = adminService.getRouteById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setRouteId(id);
-        return ResponseEntity.ok(adminService.saveRoute(newDetails));
+        return ResponseEntity.ok(routeService.saveRoute(newDetails));
     }
 
     @DeleteMapping("/routes/{id}")
     public ResponseEntity<Void> deleteRoute(@PathVariable Long id) {
-        adminService.deleteRoute(id);
+        routeService.deleteRoute(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Route Villages endpoints
+    // ---- Route Villages endpoints ----
+
     @GetMapping("/route-villages")
-    public List<RouteVillage> listRouteVillages() { return adminService.getAllRouteVillages(); }
+    public List<RouteVillage> listRouteVillages() { return routeService.getAllRouteVillages(); }
 
     @GetMapping("/route-villages/{id}")
     public ResponseEntity<RouteVillage> getRouteVillage(@PathVariable Long id) {
-        RouteVillage rv = adminService.getRouteVillageById(id);
-        if (rv == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(rv);
+        return ResponseEntity.ok(routeService.getRouteVillageById(id));
     }
 
     @PostMapping("/route-villages")
-    public RouteVillage createRouteVillage(@RequestBody RouteVillage village) { return adminService.saveRouteVillage(village); }
+    public RouteVillage createRouteVillage(@RequestBody RouteVillage village) { return routeService.saveRouteVillage(village); }
 
     @PutMapping("/route-villages/{id}")
     public ResponseEntity<RouteVillage> updateRouteVillage(@PathVariable Long id, @RequestBody RouteVillage newDetails) {
-        RouteVillage existing = adminService.getRouteVillageById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setVillageId(id);
-        return ResponseEntity.ok(adminService.saveRouteVillage(newDetails));
+        return ResponseEntity.ok(routeService.saveRouteVillage(newDetails));
     }
 
     @DeleteMapping("/route-villages/{id}")
     public ResponseEntity<Void> deleteRouteVillage(@PathVariable Long id) {
-        adminService.deleteRouteVillage(id);
+        routeService.deleteRouteVillage(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Salesman Expenses endpoints
+    // ---- Salesman Expenses endpoints ----
+
     @GetMapping("/expenses")
-    public List<SalesmanExpense> listExpenses() { return adminService.getAllSalesmanExpenses(); }
+    public List<SalesmanExpense> listExpenses() { return salesmanService.getAllExpenses(); }
 
     @GetMapping("/expenses/{id}")
     public ResponseEntity<SalesmanExpense> getExpense(@PathVariable Long id) {
-        SalesmanExpense e = adminService.getSalesmanExpenseById(id);
-        if (e == null) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(e);
+        return ResponseEntity.ok(salesmanService.getExpenseById(id));
     }
 
     @PostMapping("/expenses")
-    public SalesmanExpense createExpense(@RequestBody SalesmanExpense expense) { return adminService.saveSalesmanExpense(expense); }
+    public SalesmanExpense createExpense(@RequestBody SalesmanExpense expense) { return salesmanService.saveExpense(expense); }
 
     @PutMapping("/expenses/{id}")
     public ResponseEntity<SalesmanExpense> updateExpense(@PathVariable Long id, @RequestBody SalesmanExpense newDetails) {
-        SalesmanExpense existing = adminService.getSalesmanExpenseById(id);
-        if (existing == null) return ResponseEntity.notFound().build();
         newDetails.setExpenseId(id);
-        return ResponseEntity.ok(adminService.saveSalesmanExpense(newDetails));
+        return ResponseEntity.ok(salesmanService.saveExpense(newDetails));
     }
 
     @DeleteMapping("/expenses/{id}")
     public ResponseEntity<Void> deleteExpense(@PathVariable Long id) {
-        adminService.deleteSalesmanExpense(id);
+        salesmanService.deleteExpense(id);
         return ResponseEntity.noContent().build();
     }
 }

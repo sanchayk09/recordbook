@@ -40,6 +40,12 @@ public class SalesmanLedger {
     @Column(name = "delta_qty", nullable = false)
     private Integer deltaQty;
 
+    @Column(name = "qty_before")
+    private Integer qtyBefore;
+
+    @Column(name = "qty_after")
+    private Integer qtyAfter;
+
     @Column(name = "remarks", columnDefinition = "TEXT")
     private String remarks;
 
@@ -104,6 +110,22 @@ public class SalesmanLedger {
 
     public void setDeltaQty(Integer deltaQty) {
         this.deltaQty = deltaQty;
+    }
+
+    public Integer getQtyBefore() {
+        return qtyBefore;
+    }
+
+    public void setQtyBefore(Integer qtyBefore) {
+        this.qtyBefore = qtyBefore;
+    }
+
+    public Integer getQtyAfter() {
+        return qtyAfter;
+    }
+
+    public void setQtyAfter(Integer qtyAfter) {
+        this.qtyAfter = qtyAfter;
     }
 
     public String getRemarks() {
