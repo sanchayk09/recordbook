@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Sector, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { productSalesSummaryAPI, salesmanAPI, expenseAPI, summaryAPI } from '../api';
-import { notifyError, notifySuccess } from '../utils/toast';
-import { getTodayDate } from '../utils/dateUtils';
-import { cacheUtils } from '../utils/cacheUtils';
+import { productSalesSummaryAPI } from '../api';
+import { notifyError } from '../utils/toast';
 import '../styles/ProductSalesSummary.css';
 
 const ProductSalesSummary = () => {
@@ -16,14 +14,6 @@ const ProductSalesSummary = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
   const navigate = useNavigate();
-  const [salesmen, setSalesmen] = useState([]);
-  const [selectedSalesman, setSelectedSalesman] = useState('');
-  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [expenseDetail, setExpenseDetail] = useState(null);
-  const [expenseLoading, setExpenseLoading] = useState(false);
-  const [submitLoading, setSubmitLoading] = useState(false);
-  const [editExpenseAmount, setEditExpenseAmount] = useState('');
-  const [computedSummary, setComputedSummary] = useState(null);
   const [activeQuantitySliceIndex, setActiveQuantitySliceIndex] = useState(null);
   const [activeRevenueSliceIndex, setActiveRevenueSliceIndex] = useState(null);
 
@@ -77,77 +67,10 @@ const ProductSalesSummary = () => {
     }
   }, [filterType, selectedDate, startDate, endDate, selectedMonth]);
 
-  const fetchSalesmen = useCallback(async () => {
-    try {
-      // Check cache first
-      let aliases = cacheUtils.getSalesmenAliases();
-      if (!aliases) {
-        const res = await salesmanAPI.getAliases();
-        aliases = Array.isArray(res.data) ? res.data : [];
-        cacheUtils.setSalesmenAliases(aliases);
-      }
-      setSalesmen(aliases);
-      if (aliases && aliases.length > 0) setSelectedSalesman(aliases[0]);
-    } catch (e) {
-      setSalesmen([]);
-    }
-  }, []);
-
   useEffect(() => {
     fetchProductSales();
   }, [fetchProductSales]);
 
-  useEffect(() => {
-    fetchSalesmen();
-  }, [fetchSalesmen]);
-
-  const fetchExpenseDetail = async () => {
-    if (!selectedSalesman || !expenseDate) return;
-    setExpenseLoading(true);
-    setExpenseDetail(null);
-    setComputedSummary(null);
-    try {
-      const res = await expenseAPI.getByDate(selectedSalesman, expenseDate);
-      setExpenseDetail(res.data);
-      setEditExpenseAmount(res.data.totalExpense !== undefined ? String(res.data.totalExpense) : '0');
-    } catch (err) {
-      setExpenseDetail(null);
-      setEditExpenseAmount('0');
-    } finally {
-      setExpenseLoading(false);
-    }
-
-    // Also fetch the existing summary for this salesman/date
-    try {
-      const summaryRes = await summaryAPI.getBySalesmanDate(selectedSalesman, expenseDate);
-      setComputedSummary(summaryRes.data);
-    } catch {
-      setComputedSummary(null);
-    }
-  };
-
-  const handleSaveExpense = async () => {
-    if (!selectedSalesman || !expenseDate) {
-      notifyError('Please select a salesman and date first.');
-      return;
-    }
-    const amount = parseFloat(editExpenseAmount);
-    if (isNaN(amount) || amount < 0) {
-      notifyError('Expense amount must be a non-negative number.');
-      return;
-    }
-    setSubmitLoading(true);
-    try {
-      const res = await expenseAPI.upsertAndRecalculate(selectedSalesman, expenseDate, amount);
-      setComputedSummary(res.data);
-      setExpenseDetail({ salesmanAlias: selectedSalesman, expenseDate, totalExpense: amount });
-      notifySuccess('Expense saved and summary recalculated!');
-    } catch (err) {
-      notifyError('Failed to save expense: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setSubmitLoading(false);
-    }
-  };
 
   const renderActiveSlice = (props) => {
     const RADIAN = Math.PI / 180;
@@ -495,85 +418,6 @@ const ProductSalesSummary = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      )}
-
-      <hr className="pss-divider" />
-      <h3>Daily Expense &amp; Summary</h3>
-      <div className="pss-expense-row">
-        <label className="pss-label">Salesman:</label>
-        <select value={selectedSalesman} onChange={e => setSelectedSalesman(e.target.value)} className="pss-select">
-          {salesmen.map(alias => (
-            <option key={alias} value={alias}>{alias}</option>
-          ))}
-        </select>
-        <label className="pss-label">Date:</label>
-        <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} className="pss-select" />
-        <button onClick={() => setExpenseDate(getTodayDate())} className="pss-expense-btn secondary">Today</button>
-        <button onClick={fetchExpenseDetail} className="pss-expense-btn primary">Load</button>
-      </div>
-
-      {expenseLoading ? (
-        <div>Loading expense...</div>
-      ) : (
-        <div className="pss-expense-block">
-          <div className="pss-expense-row" style={{ marginTop: '10px' }}>
-            <label className="pss-label">Total Expense (₹):</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={editExpenseAmount}
-              onChange={e => setEditExpenseAmount(e.target.value)}
-              className="pss-select"
-              style={{ width: '140px' }}
-              placeholder="Enter expense"
-            />
-            <button
-              onClick={handleSaveExpense}
-              disabled={submitLoading}
-              className="pss-submit-btn"
-              style={{ marginLeft: '8px' }}
-            >
-              {submitLoading ? 'Saving...' : 'Save Expense & Recalculate'}
-            </button>
-          </div>
-
-          {computedSummary && (
-            <div className="pss-expense-summary" style={{ marginTop: '14px' }}>
-              <h4 style={{ marginBottom: '6px' }}>Computed Summary</h4>
-              <table className="pss-expense-table">
-                <thead>
-                  <tr className="pss-expense-head">
-                    <th className="pss-th">Salesman</th>
-                    <th className="pss-th">Date</th>
-                    <th className="pss-th">Total Qty</th>
-                    <th className="pss-th">Volume Sold</th>
-                    <th className="pss-th">Revenue</th>
-                    <th className="pss-th">Commission</th>
-                    <th className="pss-th">Material Cost</th>
-                    <th className="pss-th">Expense</th>
-                    <th className="pss-th">Net Profit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="pss-td">{computedSummary.salesmanAlias}</td>
-                    <td className="pss-td">{computedSummary.saleDate}</td>
-                    <td className="pss-td">{computedSummary.totalQuantity}</td>
-                    <td className="pss-td">{Number(computedSummary.volumeSold || 0).toFixed(2)}</td>
-                    <td className="pss-td">₹{Number(computedSummary.totalRevenue || 0).toFixed(2)}</td>
-                    <td className="pss-td">₹{Number(computedSummary.totalAgentCommission || 0).toFixed(2)}</td>
-                    <td className="pss-td">₹{Number(computedSummary.materialCost || 0).toFixed(2)}</td>
-                    <td className="pss-td">₹{Number(computedSummary.totalExpense || 0).toFixed(2)}</td>
-                    <td className="pss-td" style={{ fontWeight: 'bold', color: Number(computedSummary.netProfit) >= 0 ? '#2e7d32' : '#c62828' }}>
-                      ₹{Number(computedSummary.netProfit || 0).toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       )}
     </div>

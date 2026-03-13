@@ -26,6 +26,7 @@ const Header = () => {
             <Link to="/daily-sales-summary" className="dropdown-item">View Daily Sale</Link>
             <Link to="/product-sales-summary" className="dropdown-item">Product Sale Summary</Link>
             <Link to="/daily-summary-report" className="dropdown-item">Daily Summary Report</Link>
+            <Link to="/expense-manager" className="dropdown-item">Expense Manager</Link>
           </div>
         </div>
         <Link to="/warehouse" className="nav-button warehouse">🏭 Warehouse</Link>

@@ -5,6 +5,7 @@ import { getTodayDate } from '../utils/dateUtils';
 import '../styles/DailySummaryReport.css';
 
 const DailySummaryReport = () => {
+  const ALL_SALESMEN_VALUE = '__ALL__';
     const [salesmen, setSalesmen] = useState([]);
 
     // Memoize fetchSalesmenAliases to prevent duplicate calls
@@ -25,13 +26,17 @@ const DailySummaryReport = () => {
 
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [salesmanAlias, setSalesmanAlias] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [salesmanAlias, setSalesmanAlias] = useState(ALL_SALESMEN_VALUE);
   const [filterType, setFilterType] = useState('last30days'); // today, week, month, dateRange
   const [saleDate, setSaleDate] = useState(getTodayDate());
   const [startDate, setStartDate] = useState(getTodayDate());
   const [endDate, setEndDate] = useState(getTodayDate());
   const [showProfitColumns, setShowProfitColumns] = useState(false);
+  const [viewMode, setViewMode] = useState('table');
   const [activeSliceIndex, setActiveSliceIndex] = useState(null);
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // Helper function to get week start and end dates
   const getWeekDates = (date) => {
@@ -69,32 +74,29 @@ const DailySummaryReport = () => {
     };
   };
 
-  // Fetch summaries using axios (api.js)
+  // Fetch summaries using unified API endpoint
   const fetchSummaries = useCallback(async () => {
     setLoading(true);
     try {
-      let url = '/api/summary/all';
+      // Build query parameters based on filter type
+      const params = new URLSearchParams();
 
+      // Add salesman if selected
+      if (salesmanAlias && salesmanAlias !== ALL_SALESMEN_VALUE) {
+        params.append('alias', salesmanAlias);
+      }
+
+      // Add date/range parameters based on filter type
       if (filterType === 'today') {
-        if (salesmanAlias) {
-          url = `/api/summary/by-salesman-date?alias=${encodeURIComponent(salesmanAlias)}&date=${getTodayDate()}`;
-        } else {
-          url = `/api/summary/date?date=${getTodayDate()}`;
-        }
+        params.append('date', getTodayDate());
       } else if (filterType === 'week') {
         const { start, end } = getWeekDates(saleDate);
-        if (salesmanAlias) {
-          url = `/api/summary/salesman-range?alias=${encodeURIComponent(salesmanAlias)}&startDate=${start}&endDate=${end}`;
-        } else {
-          url = `/api/summary/range?startDate=${start}&endDate=${end}`;
-        }
+        params.append('startDate', start);
+        params.append('endDate', end);
       } else if (filterType === 'month') {
         const { start, end } = getMonthDates(saleDate);
-        if (salesmanAlias) {
-          url = `/api/summary/salesman-range?alias=${encodeURIComponent(salesmanAlias)}&startDate=${start}&endDate=${end}`;
-        } else {
-          url = `/api/summary/range?startDate=${start}&endDate=${end}`;
-        }
+        params.append('startDate', start);
+        params.append('endDate', end);
       } else if (filterType === 'last7days' || filterType === 'last15days' || filterType === 'last30days' || filterType === 'last90days') {
         const daysMap = {
           'last7days': 7,
@@ -103,18 +105,17 @@ const DailySummaryReport = () => {
           'last90days': 90
         };
         const { start, end } = getLastXDays(daysMap[filterType]);
-        if (salesmanAlias) {
-          url = `/api/summary/salesman-range?alias=${encodeURIComponent(salesmanAlias)}&startDate=${start}&endDate=${end}`;
-        } else {
-          url = `/api/summary/range?startDate=${start}&endDate=${end}`;
-        }
+        params.append('startDate', start);
+        params.append('endDate', end);
       } else if (filterType === 'dateRange') {
-        if (salesmanAlias) {
-          url = `/api/summary/salesman-range?alias=${encodeURIComponent(salesmanAlias)}&startDate=${startDate}&endDate=${endDate}`;
-        } else {
-          url = `/api/summary/range?startDate=${startDate}&endDate=${endDate}`;
-        }
+        params.append('startDate', startDate);
+        params.append('endDate', endDate);
       }
+      // If filterType is 'all', no params needed
+
+      // Build URL with query params
+      const query = params.toString();
+      const url = `/api/summary${query ? '?' + query : ''}`;
 
       const res = await (await import('../api')).default.get(url);
       const data = res.data;
@@ -125,7 +126,7 @@ const DailySummaryReport = () => {
     } finally {
       setLoading(false);
     }
-  }, [filterType, salesmanAlias, saleDate, startDate, endDate]);
+  }, [filterType, salesmanAlias, saleDate, startDate, endDate, ALL_SALESMEN_VALUE]);
 
   useEffect(() => {
     fetchSummaries();
@@ -189,6 +190,78 @@ const DailySummaryReport = () => {
     );
   }, [summaries]);
 
+  const groupedByDate = useMemo(() => {
+    const grouped = summaries.reduce((acc, record) => {
+      const key = record.saleDate || 'Unknown Date';
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(record);
+      return acc;
+    }, {});
+
+    const groupsWithTotals = Object.entries(grouped).map(([date, rows]) => {
+      const totalsByDate = rows.reduce(
+        (acc, s) => {
+          acc.volumeSold += Number(s.volumeSold) || 0;
+          acc.totalRevenue += Number(s.totalRevenue) || 0;
+          acc.totalAgentCommission += Number(s.totalAgentCommission) || 0;
+          acc.netProfit += Number(s.netProfit) || 0;
+          return acc;
+        },
+        { volumeSold: 0, totalRevenue: 0, totalAgentCommission: 0, netProfit: 0 }
+      );
+
+      return { date, rows, totalsByDate };
+    });
+
+    groupsWithTotals.sort((a, b) => {
+      let valueA;
+      let valueB;
+
+      if (sortBy === 'date') {
+        valueA = new Date(a.date).getTime() || 0;
+        valueB = new Date(b.date).getTime() || 0;
+      } else if (sortBy === 'revenue') {
+        valueA = a.totalsByDate.totalRevenue;
+        valueB = b.totalsByDate.totalRevenue;
+      } else if (sortBy === 'volume') {
+        valueA = a.totalsByDate.volumeSold;
+        valueB = b.totalsByDate.volumeSold;
+      } else if (sortBy === 'ac') {
+        valueA = a.totalsByDate.totalAgentCommission;
+        valueB = b.totalsByDate.totalAgentCommission;
+      } else if (sortBy === 'netProfit') {
+        valueA = a.totalsByDate.netProfit;
+        valueB = b.totalsByDate.netProfit;
+      } else {
+        valueA = 0;
+        valueB = 0;
+      }
+
+      return sortOrder === 'asc' ? valueA - valueB : valueB - valueA;
+    });
+
+    return groupsWithTotals;
+  }, [summaries, sortBy, sortOrder]);
+
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(column);
+    setSortOrder('asc');
+  };
+
+  const getSortIndicator = (column) => {
+    if (sortBy !== column) return ' ⇅';
+    return sortOrder === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  const showSalesmanDetails = salesmanAlias !== '';
+  const visibleColumnCount = showProfitColumns
+    ? (showSalesmanDetails ? 11 : 10)
+    : (showSalesmanDetails ? 9 : 8);
+
   const pieChartData = useMemo(() => {
     return [
       { name: 'Material Cost', value: Number(totals.materialCost.toFixed(2)) },
@@ -233,6 +306,55 @@ const DailySummaryReport = () => {
     );
   };
 
+  const handleRefreshRecords = async () => {
+    try {
+      // Determine date range based on current filter
+      let refreshStartDate = startDate;
+      let refreshEndDate = endDate;
+
+      if (filterType === 'today') {
+        const today = getTodayDate();
+        refreshStartDate = today;
+        refreshEndDate = today;
+      } else if (filterType === 'week') {
+        const { start, end } = getWeekDates(saleDate);
+        refreshStartDate = start;
+        refreshEndDate = end;
+      } else if (filterType === 'month') {
+        const { start, end } = getMonthDates(saleDate);
+        refreshStartDate = start;
+        refreshEndDate = end;
+      } else if (filterType === 'last7days' || filterType === 'last15days' || filterType === 'last30days' || filterType === 'last90days') {
+        const daysMap = {
+          'last7days': 7,
+          'last15days': 15,
+          'last30days': 30,
+          'last90days': 90
+        };
+        const { start, end } = getLastXDays(daysMap[filterType]);
+        refreshStartDate = start;
+        refreshEndDate = end;
+      }
+
+      setRefreshing(true);
+
+      const api = await import('../api');
+      const { notifySuccess } = await import('../utils/toast');
+      const response = await api.salesAPI.refreshDailySalesRecords(refreshStartDate, refreshEndDate);
+
+      notifySuccess(`✅ Refreshed ${response.data.refreshedCount || 0} records for all salesmen (${refreshStartDate} to ${refreshEndDate})`);
+
+      // Reload summaries
+      fetchSummaries();
+    } catch (error) {
+      console.error('Error refreshing records:', error);
+      const { notifyError } = await import('../utils/toast');
+      notifyError('Failed to refresh records: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="dsr-page">
       <h2 className="dsr-header">Daily Summary Report</h2>
@@ -242,7 +364,8 @@ const DailySummaryReport = () => {
           onChange={e => setSalesmanAlias(e.target.value)}
           className="dsr-select"
         >
-          <option value="">All Salesmen</option>
+          <option value="">No Salesman (Daily Total)</option>
+          <option value={ALL_SALESMEN_VALUE}>All Salesmen</option>
           {salesmen.map((alias) => (
             <option key={alias} value={alias}>
               {alias}
@@ -322,61 +445,199 @@ const DailySummaryReport = () => {
         <button onClick={fetchSummaries} disabled={loading} className="dsr-action-btn">
           Refresh
         </button>
-        <button 
-          onClick={() => setShowProfitColumns(!showProfitColumns)}
-          className={`dsr-profit-toggle ${showProfitColumns ? 'is-active' : ''}`}
+        <button
+          onClick={handleRefreshRecords}
+          disabled={refreshing}
+          className="dsr-action-btn dsr-refresh-records-btn"
+          title="Refresh daily_sale_record for all salesmen in date range"
         >
-          {showProfitColumns ? 'Hide Profit' : 'Show Profit'}
+          {refreshing ? '⟳ Refreshing...' : '⟳ Refresh Records'}
         </button>
+        <div className="dsr-view-toggle" role="group" aria-label="View mode">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`dsr-view-btn ${viewMode === 'table' ? 'is-active' : ''}`}
+          >
+            Table
+          </button>
+          <button
+            onClick={() => setViewMode('graph')}
+            className={`dsr-view-btn ${viewMode === 'graph' ? 'is-active' : ''}`}
+          >
+            Graph
+          </button>
+        </div>
+        {viewMode === 'table' && (
+          <button 
+            onClick={() => setShowProfitColumns(!showProfitColumns)}
+            className={`dsr-profit-toggle ${showProfitColumns ? 'is-active' : ''}`}
+          >
+            {showProfitColumns ? 'Hide Profit' : 'Show Profit'}
+          </button>
+        )}
       </div>
 
+      {viewMode === 'table' && (
       <table className="dsr-table">
         <thead>
           <tr className="dsr-thead-row">
-            <th className="dsr-th">Salesman Alias</th>
-            <th className="dsr-th">Sale Date</th>
+            <th className="dsr-th" onClick={() => handleSort('date')} style={{ cursor: 'pointer' }}>
+              Sale Date{getSortIndicator('date')}
+            </th>
+            {showSalesmanDetails && <th className="dsr-th">Salesman Alias</th>}
             <th className="dsr-th">Total Quantity</th>
-            <th className="dsr-th">Volume Sold (L)</th>
+            <th className="dsr-th" onClick={() => handleSort('volume')} style={{ cursor: 'pointer' }}>
+              Volume Sold (L){getSortIndicator('volume')}
+            </th>
             <th className="dsr-th">Material Cost</th>
             <th className="dsr-th">Total Expense</th>
-            <th className="dsr-th">Total Revenue</th>
-            <th className="dsr-th">Agent Commission</th>
+            <th className="dsr-th" onClick={() => handleSort('revenue')} style={{ cursor: 'pointer' }}>
+              Total Revenue{getSortIndicator('revenue')}
+            </th>
+            <th className="dsr-th" onClick={() => handleSort('ac')} style={{ cursor: 'pointer' }}>
+              Agent Commission{getSortIndicator('ac')}
+            </th>
             <th className="dsr-th">A.C./Unit</th>
-            {showProfitColumns && <th className="dsr-th">Net Profit</th>}
+            {showProfitColumns && (
+              <th className="dsr-th" onClick={() => handleSort('netProfit')} style={{ cursor: 'pointer' }}>
+                Net Profit{getSortIndicator('netProfit')}
+              </th>
+            )}
             {showProfitColumns && <th className="dsr-th">Net Profit/Unit</th>}
           </tr>
         </thead>
         <tbody>
           {loading ? (
-            <tr><td colSpan={9} className="dsr-td dsr-center">Loading...</td></tr>
-          ) : summaries.length === 0 ? (
-            <tr><td colSpan={9} className="dsr-td dsr-center">No data found</td></tr>
+            <tr><td colSpan={visibleColumnCount} className="dsr-td dsr-center">Loading...</td></tr>
+          ) : groupedByDate.length === 0 ? (
+            <tr><td colSpan={visibleColumnCount} className="dsr-td dsr-center">No data found</td></tr>
           ) : (
-            summaries.map((s, idx) => {
-              const acPerUnit = s.totalQuantity > 0 ? (s.totalAgentCommission / s.totalQuantity).toFixed(2) : '0.00';
-              const netProfitPerUnit = s.totalQuantity > 0 ? (s.netProfit / s.totalQuantity).toFixed(2) : '0.00';
-              return (
-              <tr key={idx}>
-                <td className="dsr-td">{s.salesmanAlias}</td>
-                <td className="dsr-td">{s.saleDate}</td>
-                <td className="dsr-td">{s.totalQuantity || 0}</td>
-                <td className="dsr-td">{s.volumeSold ? Number(s.volumeSold).toFixed(2) : '0.00'}</td>
-                <td className="dsr-td">{s.materialCost}</td>
-                <td className="dsr-td">{s.totalExpense}</td>
-                <td className="dsr-td">{s.totalRevenue}</td>
-                <td className="dsr-td">{s.totalAgentCommission}</td>
-                <td className="dsr-td">{acPerUnit}</td>
-                {showProfitColumns && <td className="dsr-td">{s.netProfit}</td>}
-                {showProfitColumns && <td className="dsr-td">{netProfitPerUnit}</td>}
-              </tr>
-            );
+            groupedByDate.flatMap(({ date, rows }) => {
+              if (!showSalesmanDetails) {
+                const dateTotals = rows.reduce(
+                  (acc, s) => {
+                    acc.totalQuantity += Number(s.totalQuantity) || 0;
+                    acc.volumeSold += Number(s.volumeSold) || 0;
+                    acc.materialCost += Number(s.materialCost) || 0;
+                    acc.totalExpense += Number(s.totalExpense) || 0;
+                    acc.totalRevenue += Number(s.totalRevenue) || 0;
+                    acc.totalAgentCommission += Number(s.totalAgentCommission) || 0;
+                    acc.netProfit += Number(s.netProfit) || 0;
+                    return acc;
+                  },
+                  {
+                    totalQuantity: 0,
+                    volumeSold: 0,
+                    materialCost: 0,
+                    totalExpense: 0,
+                    totalRevenue: 0,
+                    totalAgentCommission: 0,
+                    netProfit: 0,
+                  }
+                );
+
+                const totalAcPerUnit = dateTotals.totalQuantity > 0
+                  ? (dateTotals.totalAgentCommission / dateTotals.totalQuantity).toFixed(2)
+                  : '0.00';
+                const totalNetProfitPerUnit = dateTotals.totalQuantity > 0
+                  ? (dateTotals.netProfit / dateTotals.totalQuantity).toFixed(2)
+                  : '0.00';
+
+                return [
+                  <tr key={`${date}-daily-total`} className="dsr-date-total-row">
+                    <td className="dsr-td"><strong>{date}</strong></td>
+                    <td className="dsr-td"><strong>{dateTotals.totalQuantity}</strong></td>
+                    <td className="dsr-td"><strong>{dateTotals.volumeSold.toFixed(2)}</strong></td>
+                    <td className="dsr-td"><strong>{dateTotals.materialCost.toFixed(2)}</strong></td>
+                    <td className="dsr-td"><strong>{dateTotals.totalExpense.toFixed(2)}</strong></td>
+                    <td className="dsr-td"><strong>{dateTotals.totalRevenue.toFixed(2)}</strong></td>
+                    <td className="dsr-td"><strong>{dateTotals.totalAgentCommission.toFixed(2)}</strong></td>
+                    <td className="dsr-td"><strong>{totalAcPerUnit}</strong></td>
+                    {showProfitColumns && <td className="dsr-td"><strong>{dateTotals.netProfit.toFixed(2)}</strong></td>}
+                    {showProfitColumns && <td className="dsr-td"><strong>{totalNetProfitPerUnit}</strong></td>}
+                  </tr>
+                ];
+              }
+
+              const hasMultipleRows = rows.length > 1;
+              const dateTotals = rows.reduce(
+                (acc, s) => {
+                  acc.totalQuantity += Number(s.totalQuantity) || 0;
+                  acc.volumeSold += Number(s.volumeSold) || 0;
+                  acc.materialCost += Number(s.materialCost) || 0;
+                  acc.totalExpense += Number(s.totalExpense) || 0;
+                  acc.totalRevenue += Number(s.totalRevenue) || 0;
+                  acc.totalAgentCommission += Number(s.totalAgentCommission) || 0;
+                  acc.netProfit += Number(s.netProfit) || 0;
+                  return acc;
+                },
+                {
+                  totalQuantity: 0,
+                  volumeSold: 0,
+                  materialCost: 0,
+                  totalExpense: 0,
+                  totalRevenue: 0,
+                  totalAgentCommission: 0,
+                  netProfit: 0,
+                }
+              );
+
+              const detailRows = rows.map((s, idx) => {
+                const acPerUnit = s.totalQuantity > 0 ? (s.totalAgentCommission / s.totalQuantity).toFixed(2) : '0.00';
+                const netProfitPerUnit = s.totalQuantity > 0 ? (s.netProfit / s.totalQuantity).toFixed(2) : '0.00';
+                const rowKey = `${date}-${s.salesmanAlias || 'unknown'}-${idx}`;
+
+                return (
+                  <tr key={rowKey}>
+                    {idx === 0 && (
+                      <td className="dsr-td" rowSpan={rows.length + (hasMultipleRows ? 1 : 0)} style={{ fontWeight: 600, verticalAlign: 'middle' }}>
+                        {date}
+                      </td>
+                    )}
+                    <td className="dsr-td">{s.salesmanAlias}</td>
+                    <td className="dsr-td">{s.totalQuantity || 0}</td>
+                    <td className="dsr-td">{s.volumeSold ? Number(s.volumeSold).toFixed(2) : '0.00'}</td>
+                    <td className="dsr-td">{s.materialCost}</td>
+                    <td className="dsr-td">{s.totalExpense}</td>
+                    <td className="dsr-td">{s.totalRevenue}</td>
+                    <td className="dsr-td">{s.totalAgentCommission}</td>
+                    <td className="dsr-td">{acPerUnit}</td>
+                    {showProfitColumns && <td className="dsr-td">{s.netProfit}</td>}
+                    {showProfitColumns && <td className="dsr-td">{netProfitPerUnit}</td>}
+                  </tr>
+                );
+              });
+
+              const totalAcPerUnit = dateTotals.totalQuantity > 0
+                ? (dateTotals.totalAgentCommission / dateTotals.totalQuantity).toFixed(2)
+                : '0.00';
+              const totalNetProfitPerUnit = dateTotals.totalQuantity > 0
+                ? (dateTotals.netProfit / dateTotals.totalQuantity).toFixed(2)
+                : '0.00';
+
+              const summaryRow = (
+                <tr key={`${date}-summary`} className="dsr-date-total-row">
+                  <td className="dsr-td"><strong>Date Total</strong></td>
+                  <td className="dsr-td"><strong>{dateTotals.totalQuantity}</strong></td>
+                  <td className="dsr-td"><strong>{dateTotals.volumeSold.toFixed(2)}</strong></td>
+                  <td className="dsr-td"><strong>{dateTotals.materialCost.toFixed(2)}</strong></td>
+                  <td className="dsr-td"><strong>{dateTotals.totalExpense.toFixed(2)}</strong></td>
+                  <td className="dsr-td"><strong>{dateTotals.totalRevenue.toFixed(2)}</strong></td>
+                  <td className="dsr-td"><strong>{dateTotals.totalAgentCommission.toFixed(2)}</strong></td>
+                  <td className="dsr-td"><strong>{totalAcPerUnit}</strong></td>
+                  {showProfitColumns && <td className="dsr-td"><strong>{dateTotals.netProfit.toFixed(2)}</strong></td>}
+                  {showProfitColumns && <td className="dsr-td"><strong>{totalNetProfitPerUnit}</strong></td>}
+                </tr>
+              );
+
+              return hasMultipleRows ? [...detailRows, summaryRow] : detailRows;
             })
           )}
         </tbody>
         {summaries.length > 0 && (
           <tfoot>
             <tr className="dsr-tfoot-row">
-              <td colSpan={2} className="dsr-td dsr-right">Total:</td>
+              <td colSpan={showSalesmanDetails ? 2 : 1} className="dsr-td dsr-right">Total:</td>
               <td className="dsr-td">{totals.totalQuantity}</td>
               <td className="dsr-td">{totals.volumeSold.toFixed(2)} L</td>
               <td className="dsr-td">{totals.materialCost.toFixed(2)}</td>
@@ -390,9 +651,10 @@ const DailySummaryReport = () => {
           </tfoot>
         )}
       </table>
+      )}
 
       {/* Charts container - all three side by side */}
-      {summaries.length > 0 && (
+      {viewMode === 'graph' && summaries.length > 0 && (
         <div className="dsr-charts">
           {/* Revenue & Net Profit Trend Chart */}
           <div className="dsr-chart-card">
@@ -533,6 +795,9 @@ const DailySummaryReport = () => {
           </div>
         )}
       </div>
+      )}
+      {viewMode === 'graph' && summaries.length === 0 && !loading && (
+        <div className="dsr-empty">No data available for charts</div>
       )}
     </div>
   );

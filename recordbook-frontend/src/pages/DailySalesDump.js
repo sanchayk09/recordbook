@@ -19,11 +19,7 @@ const DailySalesDump = () => {
     const dd = String(today.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
   });
-  const [expenseEntries, setExpenseEntries] = useState([
-    { category: '', amount: '' },
-  ]);
   const [saving, setSaving] = useState(false);
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [salesmenList, setSalesmenList] = useState([]);
   const [loadingSalesmen, setLoadingSalesmen] = useState(false);
   const [editingRowIndex, setEditingRowIndex] = useState(null);
@@ -145,12 +141,9 @@ const DailySalesDump = () => {
       notifyError('Please select a salesman.');
       return;
     }
-    setShowExpenseModal(true);
-  };
 
-  const handleConfirmSave = async () => {
-    if (!salesmanId) {
-      notifyError('Please select a salesman.');
+    if (salesData.length === 0) {
+      notifyError('No sales data to save.');
       return;
     }
 
@@ -159,19 +152,13 @@ const DailySalesDump = () => {
 
       const requestBody = {
         salesmanAlias: selectedSalesman,
-        date: expenseDate, // Keep as yyyy-mm-dd format
-        expenses: expenseEntries.filter(e => e.category?.trim() && e.amount !== '').map(e => ({
-          expenseDate: expenseDate, // Keep as yyyy-mm-dd format
-          category: e.category,
-          amount: Number(e.amount)
-        })),
+        date: expenseDate,
         dailySales: salesData
       };
 
-      await expenseAPI.submitSalesWithExpense(requestBody);
+      await expenseAPI.submitSalesOnly(requestBody);
 
-      notifySuccess('Data saved successfully.');
-      setShowExpenseModal(false);
+      notifySuccess('Sales data saved successfully.');
       navigate('/daily-sales-summary');
     } catch (error) {
       notifyError('Failed to save data: ' + (error.response?.data?.message || error.message));
@@ -285,7 +272,7 @@ const DailySalesDump = () => {
             cursor: saving || salesData.length === 0 ? 'not-allowed' : 'pointer',
           }}
         >
-          {saving ? 'Saving...' : 'Save Data'}
+          {saving ? 'Saving...' : 'Save Sales'}
         </button>
       </div>
 
@@ -387,149 +374,6 @@ const DailySalesDump = () => {
           </tbody>
         </table>
       </div>
-
-      {showExpenseModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 50,
-          }}
-        >
-          <div style={{ backgroundColor: '#fff', borderRadius: '10px', width: '700px', maxWidth: '95%', padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0 }}>Add Expense Entries</h3>
-              <button
-                type="button"
-                onClick={() => setShowExpenseModal(false)}
-                style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer' }}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label htmlFor="expense-date" style={{ fontWeight: 'bold' }}>Expense Date</label>
-                <input
-                  id="expense-date"
-                  type="date"
-                  value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
-                  style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #ccc', width: '180px' }}
-                />
-              </div>
-            </div>
-
-            {expenseEntries.map((entry, index) => (
-              <div key={index} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontWeight: 'bold' }}>Category</label>
-                  <input
-                    type="text"
-                    value={entry.category}
-                    onChange={(e) => {
-                      const next = [...expenseEntries];
-                      next[index] = { ...next[index], category: e.target.value };
-                      setExpenseEntries(next);
-                    }}
-                    placeholder="Category"
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #ccc', width: '220px' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontWeight: 'bold' }}>Amount</label>
-                  <input
-                    type="number"
-                    value={entry.amount}
-                    onChange={(e) => {
-                      const next = [...expenseEntries];
-                      next[index] = { ...next[index], amount: e.target.value };
-                      setExpenseEntries(next);
-                    }}
-                    placeholder="0"
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #ccc', width: '140px' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setExpenseEntries(expenseEntries.filter((_, i) => i !== index));
-                    }}
-                    disabled={expenseEntries.length === 1}
-                    style={{
-                      backgroundColor: expenseEntries.length === 1 ? '#e5e7eb' : '#f5f5f5',
-                      color: '#333',
-                      border: '1px solid #d1d5db',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      cursor: expenseEntries.length === 1 ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '12px', justifyContent: 'space-between' }}>
-              <button
-                type="button"
-                onClick={() => setExpenseEntries([...expenseEntries, { category: '', amount: '' }])}
-                style={{
-                  backgroundColor: '#66a37f',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                }}
-              >
-                Add Expense Row
-              </button>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowExpenseModal(false)}
-                  style={{
-                    backgroundColor: '#e0e0e0',
-                    color: '#333',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmSave}
-                  disabled={saving}
-                  style={{
-                    backgroundColor: saving ? '#9ca3af' : '#1f7a4d',
-                    color: '#fff',
-                    border: 'none',
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {saving ? 'Saving...' : 'Save Expense + Sales'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

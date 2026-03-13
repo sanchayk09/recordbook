@@ -2,6 +2,8 @@ package com.urviclean.recordbook.controllers;
 import com.urviclean.recordbook.models.DailySaleRecordInput;
 import com.urviclean.recordbook.models.ExpenseItem;
 import com.urviclean.recordbook.models.SalesExpenseRequest;
+import com.urviclean.recordbook.models.SalesOnlyRequest;
+import com.urviclean.recordbook.models.SalesOnlyResponse;
 import com.urviclean.recordbook.models.DailySaleRecordResponse;
 import com.urviclean.recordbook.models.SalesmanExpenseResponse;
 import com.urviclean.recordbook.models.SalesExpenseResponse;
@@ -29,16 +31,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/sales")
 @CrossOrigin(origins = "http://localhost:3000")
 @Tag(name = "Daily Sales", description = "APIs for managing daily sales records, expenses, and product sales summaries")
 public class DailySaleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DailySaleController.class);
 
     @Autowired
     private DailySaleRecordRepository repository;
@@ -240,108 +249,115 @@ public class DailySaleController {
 
     // Product Sales Summary Endpoints (Group by Product Code)
 
-    // 8. Get total quantity sold by product code (all time): /api/sales/summary/product-sales
+    /**
+     * UNIFIED Product Sales Summary Endpoint
+     *
+     * Flexible endpoint that handles all time periods with optional parameters:
+     * - No params = all-time summary
+     * - startDate + endDate = custom date range
+     * - period = convenience shortcuts (today, last7days, last30days, etc.)
+     * - year + month = specific month
+     *
+     * Examples:
+     * /api/sales/summary/product-sales (all-time)
+     * /api/sales/summary/product-sales?period=today
+     * /api/sales/summary/product-sales?period=last7days
+     * /api/sales/summary/product-sales?period=last30days
+     * /api/sales/summary/product-sales?startDate=2026-02-01&endDate=2026-03-09
+     * /api/sales/summary/product-sales?year=2026&month=3
+     */
     @GetMapping("/summary/product-sales")
-    @Operation(summary = "Get all-time product sales summary", description = "Retrieves total quantity sold for each product (all time)")
-    public List<ProductSalesDTO> getProductSalesSummary() {
+    @Operation(
+        summary = "Get product sales summary with flexible date filtering",
+        description = "Unified endpoint supporting all-time, custom ranges, convenience periods, and monthly summaries"
+    )
+    public List<ProductSalesDTO> getProductSalesSummary(
+            @Parameter(description = "Start date (YYYY-MM-DD) for custom range", example = "2026-02-01")
+            @RequestParam(required = false) String startDate,
+
+            @Parameter(description = "End date (YYYY-MM-DD) for custom range", example = "2026-03-09")
+            @RequestParam(required = false) String endDate,
+
+            @Parameter(description = "Convenience period: today, last7days, last15days, last30days, last90days, currentMonth",
+                       example = "last30days")
+            @RequestParam(required = false) String period,
+
+            @Parameter(description = "Year for monthly summary", example = "2026")
+            @RequestParam(required = false) Integer year,
+
+            @Parameter(description = "Month (1-12) for monthly summary", example = "3")
+            @RequestParam(required = false) Integer month
+    ) {
+        // Handle monthly summary
+        if (year != null && month != null) {
+            List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(year, month);
+            return productCostService.enrichWithCostsAndCommissionByMonth(results, year, month);
+        }
+
+        // Handle custom date range
+        if (startDate != null && endDate != null) {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(start, end);
+            return productCostService.enrichWithCostsAndCommissionForDateRange(results, start, end);
+        }
+
+        // Handle convenience periods
+        if (period != null && !period.isEmpty()) {
+            LocalDate end = LocalDate.now();
+            LocalDate start;
+
+            switch (period.toLowerCase()) {
+                case "today":
+                    start = end;
+                    List<ProductSalesDTO> todayResults = repository.getQuantitySoldByProductCodeAndDate(start);
+                    return productCostService.enrichWithCostsAndCommission(todayResults, start);
+
+                case "last7days":
+                    start = end.minusDays(6);
+                    break;
+
+                case "last15days":
+                    start = end.minusDays(14);
+                    break;
+
+                case "last30days":
+                    start = end.minusDays(29);
+                    break;
+
+                case "last90days":
+                    start = end.minusDays(89);
+                    break;
+
+                case "currentmonth":
+                    List<ProductSalesDTO> monthResults = repository.getQuantitySoldByProductCodeAndMonth(
+                        end.getYear(), end.getMonthValue()
+                    );
+                    return productCostService.enrichWithCostsAndCommissionByMonth(
+                        monthResults, end.getYear(), end.getMonthValue()
+                    );
+
+                default:
+                    throw new IllegalArgumentException(
+                        "Invalid period: " + period + ". Valid values: today, last7days, last15days, last30days, last90days, currentMonth"
+                    );
+            }
+
+            // Execute date range query for period-based requests
+            List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(start, end);
+            return productCostService.enrichWithCostsAndCommissionForDateRange(results, start, end);
+        }
+
+        // Default: all-time summary (no opCost)
         List<ProductSalesDTO> results = repository.getQuantitySoldByProductCode();
         return productCostService.enrichWithCostsAndCommissionAllTime(results);
     }
 
-    // 9. Get quantity sold by product code for specific date: /api/sales/summary/product-sales/date?date=2025-02-23
-    @GetMapping("/summary/product-sales/date")
-    @Operation(summary = "Get product sales summary by date", description = "Retrieves quantity sold for each product on a specific date")
-    public List<ProductSalesDTO> getProductSalesSummaryByDate(
-            @Parameter(description = "Date (YYYY-MM-DD)", required = true, example = "2026-03-04") @RequestParam String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(localDate);
-        return productCostService.enrichWithCostsAndCommission(results, localDate);
-    }
-
-    // 10. Get quantity sold by product code for today: /api/sales/summary/product-sales/today
-    @GetMapping("/summary/product-sales/today")
-    @Operation(summary = "Get today's product sales summary", description = "Retrieves quantity sold for each product today")
-    public List<ProductSalesDTO> getProductSalesSummaryToday() {
-        LocalDate today = LocalDate.now();
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDate(today);
-        return productCostService.enrichWithCostsAndCommission(results, today);
-    }
-
-    // 11. Get quantity sold by product code for date range: /api/sales/summary/product-sales/range?startDate=2025-02-01&endDate=2025-02-23
-    @GetMapping("/summary/product-sales/range")
-    @Operation(summary = "Get product sales summary by date range", description = "Retrieves quantity sold for each product within a date range")
-    public List<ProductSalesDTO> getProductSalesSummaryByDateRange(
-            @Parameter(description = "Start date (YYYY-MM-DD)", required = true, example = "2026-03-01") @RequestParam String startDate,
-            @Parameter(description = "End date (YYYY-MM-DD)", required = true, example = "2026-03-04") @RequestParam String endDate) {
-        LocalDate start = LocalDate.parse(startDate);
-        LocalDate end = LocalDate.parse(endDate);
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(start, end);
-        return productCostService.enrichWithCostsAndCommissionForDateRange(results, start, end);
-    }
-
-    // 12. Get quantity sold by product code for specific month: /api/sales/summary/product-sales/month?year=2025&month=2
-    @GetMapping("/summary/product-sales/month")
-    @Operation(summary = "Get product sales summary by month", description = "Retrieves quantity sold for each product in a specific month")
-    public List<ProductSalesDTO> getProductSalesSummaryByMonth(
-            @Parameter(description = "Year", required = true, example = "2026") @RequestParam int year,
-            @Parameter(description = "Month (1-12)", required = true, example = "3") @RequestParam int month) {
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(year, month);
-        return productCostService.enrichWithCostsAndCommissionByMonth(results, year, month);
-    }
-
-    // 13. Get quantity sold by product code for current month: /api/sales/summary/product-sales/current-month
-    @GetMapping("/summary/product-sales/current-month")
-    @Operation(summary = "Get current month's product sales summary", description = "Retrieves quantity sold for each product in the current month")
-    public List<ProductSalesDTO> getProductSalesSummaryCurrentMonth() {
-        LocalDate today = LocalDate.now();
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndMonth(today.getYear(), today.getMonthValue());
-        return productCostService.enrichWithCostsAndCommissionByMonth(results, today.getYear(), today.getMonthValue());
-    }
-
-    // 14. Get quantity sold by product code for last 7 days: /api/sales/summary/product-sales/last-7-days
-    @GetMapping("/summary/product-sales/last-7-days")
-    @Operation(summary = "Get product sales summary for last 7 days", description = "Retrieves quantity sold for each product in the last 7 days")
-    public List<ProductSalesDTO> getProductSalesSummaryLast7Days() {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(6);
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
-        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
-    }
-
-    // 15. Get quantity sold by product code for last 15 days: /api/sales/summary/product-sales/last-15-days
-    @GetMapping("/summary/product-sales/last-15-days")
-    @Operation(summary = "Get product sales summary for last 15 days", description = "Retrieves quantity sold for each product in the last 15 days")
-    public List<ProductSalesDTO> getProductSalesSummaryLast15Days() {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(14);
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
-        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
-    }
-
-    // 16. Get quantity sold by product code for last 30 days: /api/sales/summary/product-sales/last-30-days
-    @GetMapping("/summary/product-sales/last-30-days")
-    @Operation(summary = "Get product sales summary for last 30 days", description = "Retrieves quantity sold for each product in the last 30 days")
-    public List<ProductSalesDTO> getProductSalesSummaryLast30Days() {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(29);
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
-        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
-    }
-
-    // 17. Get quantity sold by product code for last 90 days: /api/sales/summary/product-sales/last-90-days
-    @GetMapping("/summary/product-sales/last-90-days")
-    @Operation(summary = "Get product sales summary for last 90 days", description = "Retrieves quantity sold for each product in the last 90 days")
-    public List<ProductSalesDTO> getProductSalesSummaryLast90Days() {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(89);
-        List<ProductSalesDTO> results = repository.getQuantitySoldByProductCodeAndDateRange(startDate, endDate);
-        return productCostService.enrichWithCostsAndCommissionForDateRange(results, startDate, endDate);
-    }
-
-    // POST with request body for alias + expenses + daily sales
+    // POST with request body for alias + daily sales only (NO EXPENSES)
     @PostMapping("/sales-expense")
     @Transactional
-    public ResponseEntity<SalesExpenseResponse> addSalesAndExpenses(@RequestBody SalesExpenseRequest request) {
+    @Operation(summary = "Submit daily sales only", description = "Creates sale records and updates salesman stock. Does NOT process expenses.")
+    public ResponseEntity<SalesOnlyResponse> addSalesOnly(@RequestBody SalesOnlyRequest request) {
         if (request == null || request.salesmanAlias == null || request.salesmanAlias.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
@@ -349,25 +365,6 @@ public class DailySaleController {
                 .orElseThrow(() -> new RuntimeException("Salesman not found for alias: " + request.salesmanAlias));
 
         LocalDate requestDate = request.date;
-
-        List<SalesmanExpense> expenseEntities = new ArrayList<>();
-        BigDecimal totalDailyExpense = BigDecimal.ZERO;
-
-        if (request.expenses != null) {
-            for (ExpenseItem item : request.expenses) {
-                SalesmanExpense expense = new SalesmanExpense();
-                expense.setSalesman(salesman);
-                expense.setExpenseDate(item.expenseDate != null ? item.expenseDate : requestDate);
-                expense.setCategory(parseExpenseCategory(item.category));
-                expense.setAmount(item.amount);
-                expenseEntities.add(expense);
-
-                // Add to daily total if it's for the request date
-                if ((item.expenseDate != null ? item.expenseDate : requestDate).equals(requestDate)) {
-                    totalDailyExpense = totalDailyExpense.add(item.amount);
-                }
-            }
-        }
 
         List<DailySaleRecord> existingRecords = repository.findAll();
         List<DailySaleRecord> savedSales = new ArrayList<>();
@@ -377,7 +374,7 @@ public class DailySaleController {
                 DailySaleRecord incoming = new DailySaleRecord();
                 incoming.setSlNo(item.slNo);
                 incoming.setSaleDate(item.saleDate != null ? item.saleDate : requestDate);
-                incoming.setSalesmanName(request.salesmanAlias.trim());
+                incoming.setSalesmanName(salesman.getAlias());
                 incoming.setCustomerName(item.customerName);
                 incoming.setCustomerType(item.customerType);
                 incoming.setVillage(item.village);
@@ -387,55 +384,88 @@ public class DailySaleController {
                 incoming.setRate(item.rate);
                 incoming.setRevenue(resolveRevenue(item.quantity, item.rate, item.revenue));
 
-                // Calculate agent commission (per unit × quantity)
                 BigDecimal commission = CommissionCalculator.calculateCommission(item.productCode, item.rate, item.quantity);
                 incoming.setAgentCommission(commission);
 
-                // Calculate volume_sold based on product_code and quantity
                 BigDecimal volumeSold = VolumeCalculator.calculateVolumeSold(item.productCode, item.quantity);
                 incoming.setVolumeSold(volumeSold);
 
                 DailySaleRecord existing = findExistingRecord(incoming, existingRecords);
                 if (existing == null) {
-                    // New sale: createSale handles atomic stock check + ledger
                     DailySaleRecord saved = salesService.createSale(incoming);
                     existingRecords.add(saved);
                     savedSales.add(saved);
                 } else {
-                    // Existing sale: updateSale handles atomic stock reconciliation + ledger
                     DailySaleRecord saved = salesService.updateSale(existing.getId(), incoming);
                     savedSales.add(saved);
                 }
             }
         }
 
+        List<DailySaleRecordResponse> saleResponses = savedSales.stream()
+                .map(DailySaleRecordResponse::new)
+                .toList();
+
+        return ResponseEntity.ok(new SalesOnlyResponse(saleResponses, "Sales saved successfully"));
+    }
+
+    @PostMapping("/expenses")
+    @Transactional
+    public ResponseEntity<SalesExpenseResponse> addExpensesOnly(@RequestBody SalesExpenseRequest request) {
+        if (request == null || request.salesmanAlias == null || request.salesmanAlias.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Salesman salesman = salesmanRepository.findByAliasIgnoreCase(request.salesmanAlias.trim())
+                .orElseThrow(() -> new RuntimeException("Salesman not found for alias: " + request.salesmanAlias));
+
+        LocalDate requestDate = request.date;
+        if (requestDate == null) {
+            requestDate = LocalDate.now();
+        }
+
+        List<SalesmanExpense> expenseEntities = new ArrayList<>();
+        if (request.expenses != null) {
+            for (ExpenseItem item : request.expenses) {
+                if (item == null || item.amount == null) {
+                    continue;
+                }
+                SalesmanExpense expense = new SalesmanExpense();
+                expense.setSalesman(salesman);
+                expense.setExpenseDate(item.expenseDate != null ? item.expenseDate : requestDate);
+                expense.setCategory(parseExpenseCategory(item.category));
+                expense.setAmount(item.amount);
+                expenseEntities.add(expense);
+            }
+        }
+
         List<SalesmanExpense> savedExpenses = salesmanExpenseRepository.saveAll(expenseEntities);
 
-        // Populate daily_expense_record if expenses exist
-        if (!expenseEntities.isEmpty()) {
-            DailyExpenseRecord dailyExpenseRecord = dailyExpenseRecordRepository
-                    .findBySalesmanAliasAndExpenseDate(request.salesmanAlias.trim(), requestDate)
-                    .orElse(new DailyExpenseRecord(request.salesmanAlias.trim(), requestDate, BigDecimal.ZERO));
+        // Upsert daily_expense_record totals for each touched expense date.
+        List<LocalDate> touchedDates = savedExpenses.stream()
+                .map(SalesmanExpense::getExpenseDate)
+                .distinct()
+                .toList();
 
-            // Update total expense by aggregating from saved expenses for this date
+        for (LocalDate date : touchedDates) {
             BigDecimal aggregatedExpense = savedExpenses.stream()
-                    .filter(exp -> exp.getExpenseDate().equals(requestDate))
+                    .filter(exp -> date.equals(exp.getExpenseDate()))
                     .map(SalesmanExpense::getAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            DailyExpenseRecord dailyExpenseRecord = dailyExpenseRecordRepository
+                    .findBySalesmanAliasAndExpenseDate(salesman.getAlias(), date)
+                    .orElse(new DailyExpenseRecord(salesman.getAlias(), date, BigDecimal.ZERO));
 
             dailyExpenseRecord.setTotalExpense(aggregatedExpense);
             dailyExpenseRecordRepository.save(dailyExpenseRecord);
         }
 
-        // Convert to response DTOs (without IDs)
         List<SalesmanExpenseResponse> expenseResponses = savedExpenses.stream()
                 .map(SalesmanExpenseResponse::new)
                 .toList();
-        List<DailySaleRecordResponse> saleResponses = savedSales.stream()
-                .map(DailySaleRecordResponse::new)
-                .toList();
 
-        return ResponseEntity.ok(new SalesExpenseResponse(expenseResponses, saleResponses));
+        return ResponseEntity.ok(new SalesExpenseResponse(expenseResponses, List.of()));
     }
 
     private BigDecimal resolveRevenue(Integer quantity, BigDecimal rate, BigDecimal revenue) {
@@ -483,6 +513,79 @@ public class DailySaleController {
                 && equalsString(r1.getVillage(), r2.getVillage())
                 && equalsString(r1.getMobileNumber(), r2.getMobileNumber())
                 && equalsString(r1.getProductCode(), r2.getProductCode());
+    }
+
+    /**
+     * Refresh daily_sale_record for all salesmen in date range
+     * Reads daily_sale_record table and creates/updates summary records in daily_summary table
+     * for all salesmen and dates in the range
+     */
+    @PostMapping("/refresh")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> refreshDailySalesRecords(
+            @RequestBody Map<String, String> request) {
+        try {
+            String startDateStr = request.get("startDate");
+            String endDateStr = request.get("endDate");
+
+            if (startDateStr == null || endDateStr == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "startDate and endDate are required"));
+            }
+
+            LocalDate startDate = LocalDate.parse(startDateStr);
+            LocalDate endDate = LocalDate.parse(endDateStr);
+
+            logger.info("Starting refresh for date range: {} to {}", startDate, endDate);
+
+            // Get all sales records in the date range
+            List<DailySaleRecord> allRecords = repository.findByDateRange(startDate, endDate);
+
+            if (allRecords.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("refreshedCount", 0);
+                response.put("message", "No sales records found in the date range");
+                logger.info("No records found for date range {} to {}", startDate, endDate);
+                return ResponseEntity.ok(response);
+            }
+
+            // Group by (salesman, date) - this gives us unique salesman-date combinations
+            Map<String, List<DailySaleRecord>> groupedBySalesmanDate = allRecords.stream()
+                    .collect(Collectors.groupingBy(r -> r.getSalesmanName() + "|" + r.getSaleDate()));
+
+            int refreshedCount = 0;
+
+            // For each salesman-date combination, compute and save summary
+            for (Map.Entry<String, List<DailySaleRecord>> entry : groupedBySalesmanDate.entrySet()) {
+                List<DailySaleRecord> records = entry.getValue();
+                if (records.isEmpty()) continue;
+
+                String salesmanName = records.get(0).getSalesmanName();
+                LocalDate saleDate = records.get(0).getSaleDate();
+
+                logger.debug("Processing: salesman={}, date={}, recordCount={}", salesmanName, saleDate, records.size());
+
+                // Use DailySummaryService to compute and persist the summary
+                // This ensures all calculations (material cost, expenses, net profit) are correct
+                try {
+                    salesService.getDailySummaryService().computeAndPersistSummary(salesmanName, saleDate);
+                    refreshedCount++;
+                    logger.debug("Successfully refreshed summary for {} on {}", salesmanName, saleDate);
+                } catch (Exception e) {
+                    logger.warn("Failed to refresh summary for {} on {}: {}", salesmanName, saleDate, e.getMessage());
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("refreshedCount", refreshedCount);
+            response.put("message", "Successfully refreshed " + refreshedCount + " daily summaries for all salesmen from " + startDate + " to " + endDate);
+            response.put("dateRange", startDate + " to " + endDate);
+
+            logger.info("Completed refresh: {} summaries updated for date range {} to {}", refreshedCount, startDate, endDate);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error refreshing daily sales records: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to refresh: " + e.getMessage()));
+        }
     }
 
     /**

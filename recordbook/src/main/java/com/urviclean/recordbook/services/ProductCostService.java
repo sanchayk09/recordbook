@@ -132,27 +132,27 @@ public class ProductCostService {
     /**
      * Enriches a list of ProductSalesDTO with cost and commission information for a specific date
      * Fetches commission data from database and maps it to each product
-     * Also calculates operational cost: opCostPerUnit * totalQuantity
+     * Also calculates operational cost using volume-based allocation: expensePerLiter * volumeSold
      */
     public List<ProductSalesDTO> enrichWithCostsAndCommission(List<ProductSalesDTO> dtos, LocalDate saleDate) {
         if (dtos == null || dtos.isEmpty()) {
             return dtos;
         }
 
-        // Fetch total expense for the given date
+        // Fetch total expense for the given date from daily_expense_record
         BigDecimal totalExpense = dailyExpenseRecordRepository.getTotalExpenseByDate(saleDate);
         totalExpense = totalExpense != null ? totalExpense : BigDecimal.ZERO;
 
-        // Calculate total quantity sold across all products
-        Long totalQuantitySold = dtos.stream()
-                .mapToLong(dto -> dto.getTotalQuantity() != null ? dto.getTotalQuantity() : 0)
-                .sum();
+        // Calculate total VOLUME sold across all products (in liters)
+        BigDecimal totalVolumeSold = dtos.stream()
+                .map(dto -> dto.getVolumeSold() != null ? dto.getVolumeSold() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate opCost per unit
-        BigDecimal opCostPerUnit = BigDecimal.ZERO;
-        if (totalQuantitySold > 0 && totalExpense.compareTo(BigDecimal.ZERO) > 0) {
-            opCostPerUnit = totalExpense.divide(
-                    BigDecimal.valueOf(totalQuantitySold),
+        // Calculate expense per liter (opCost rate)
+        BigDecimal expensePerLiter = BigDecimal.ZERO;
+        if (totalVolumeSold.compareTo(BigDecimal.ZERO) > 0 && totalExpense.compareTo(BigDecimal.ZERO) > 0) {
+            expensePerLiter = totalExpense.divide(
+                    totalVolumeSold,
                     4,  // 4 decimal places for precision
                     RoundingMode.HALF_UP
             );
@@ -169,7 +169,7 @@ public class ProductCostService {
                         }
                 ));
 
-        final BigDecimal finalOpCostPerUnit = opCostPerUnit;
+        final BigDecimal finalExpensePerLiter = expensePerLiter;
 
         // Enrich each DTO with commission, opCost and cost data
         return dtos.stream()
@@ -177,8 +177,9 @@ public class ProductCostService {
                     BigDecimal commission = commissionMap.getOrDefault(dto.getProductCode(), BigDecimal.ZERO);
                     dto.setSalesmanCommission(commission);
 
-                    // Calculate opCost for this product: opCostPerUnit * totalQuantity
-                    BigDecimal productOpCost = finalOpCostPerUnit.multiply(BigDecimal.valueOf(dto.getTotalQuantity()));
+                    // Calculate opCost for this product: expensePerLiter * volumeSold
+                    BigDecimal productVolume = dto.getVolumeSold() != null ? dto.getVolumeSold() : BigDecimal.ZERO;
+                    BigDecimal productOpCost = finalExpensePerLiter.multiply(productVolume);
                     dto.setOpCost(productOpCost.setScale(2, RoundingMode.HALF_UP));
                 })
                 .map(this::enrichWithCost)
@@ -194,20 +195,20 @@ public class ProductCostService {
             return dtos;
         }
 
-        // Fetch total expense for the date range
+        // Fetch total expense for the date range from daily_expense_record
         BigDecimal totalExpense = dailyExpenseRecordRepository.getTotalExpenseByDateRange(startDate, endDate);
         totalExpense = totalExpense != null ? totalExpense : BigDecimal.ZERO;
 
-        // Calculate total quantity sold across all products
-        Long totalQuantitySold = dtos.stream()
-                .mapToLong(dto -> dto.getTotalQuantity() != null ? dto.getTotalQuantity() : 0)
-                .sum();
+        // Calculate total VOLUME sold across all products (in liters)
+        BigDecimal totalVolumeSold = dtos.stream()
+                .map(dto -> dto.getVolumeSold() != null ? dto.getVolumeSold() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Calculate opCost per unit
-        BigDecimal opCostPerUnit = BigDecimal.ZERO;
-        if (totalQuantitySold > 0 && totalExpense.compareTo(BigDecimal.ZERO) > 0) {
-            opCostPerUnit = totalExpense.divide(
-                    BigDecimal.valueOf(totalQuantitySold),
+        // Calculate expense per liter (opCost rate)
+        BigDecimal expensePerLiter = BigDecimal.ZERO;
+        if (totalVolumeSold.compareTo(BigDecimal.ZERO) > 0 && totalExpense.compareTo(BigDecimal.ZERO) > 0) {
+            expensePerLiter = totalExpense.divide(
+                    totalVolumeSold,
                     4,  // 4 decimal places for precision
                     RoundingMode.HALF_UP
             );
@@ -224,7 +225,7 @@ public class ProductCostService {
                         }
                 ));
 
-        final BigDecimal finalOpCostPerUnit = opCostPerUnit;
+        final BigDecimal finalExpensePerLiter = expensePerLiter;
 
         // Enrich each DTO with commission, opCost and cost data
         return dtos.stream()
@@ -232,8 +233,9 @@ public class ProductCostService {
                     BigDecimal commission = commissionMap.getOrDefault(dto.getProductCode(), BigDecimal.ZERO);
                     dto.setSalesmanCommission(commission);
 
-                    // Calculate opCost for this product: opCostPerUnit * totalQuantity
-                    BigDecimal productOpCost = finalOpCostPerUnit.multiply(BigDecimal.valueOf(dto.getTotalQuantity()));
+                    // Calculate opCost for this product: expensePerLiter * volumeSold
+                    BigDecimal productVolume = dto.getVolumeSold() != null ? dto.getVolumeSold() : BigDecimal.ZERO;
+                    BigDecimal productOpCost = finalExpensePerLiter.multiply(productVolume);
                     dto.setOpCost(productOpCost.setScale(2, RoundingMode.HALF_UP));
                 })
                 .map(this::enrichWithCost)
@@ -273,12 +275,35 @@ public class ProductCostService {
 
     /**
      * Enriches a list of ProductSalesDTO with cost and commission information for monthly data
-     * Fetches commission data by product for the specific month
-     * Does NOT include opCost (only for specific dates)
+     * Fetches commission data and expense data by product for the specific month
+     * Calculates operational cost using volume-based allocation: expensePerLiter * volumeSold
      */
     public List<ProductSalesDTO> enrichWithCostsAndCommissionByMonth(List<ProductSalesDTO> dtos, int year, int month) {
         if (dtos == null || dtos.isEmpty()) {
             return dtos;
+        }
+
+        // Calculate date range for the month
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+
+        // Fetch total expense for the month from daily_expense_record
+        BigDecimal totalExpense = dailyExpenseRecordRepository.getTotalExpenseByDateRange(startDate, endDate);
+        totalExpense = totalExpense != null ? totalExpense : BigDecimal.ZERO;
+
+        // Calculate total VOLUME sold across all products (in liters)
+        BigDecimal totalVolumeSold = dtos.stream()
+                .map(dto -> dto.getVolumeSold() != null ? dto.getVolumeSold() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate expense per liter (opCost rate)
+        BigDecimal expensePerLiter = BigDecimal.ZERO;
+        if (totalVolumeSold.compareTo(BigDecimal.ZERO) > 0 && totalExpense.compareTo(BigDecimal.ZERO) > 0) {
+            expensePerLiter = totalExpense.divide(
+                    totalVolumeSold,
+                    4,  // 4 decimal places for precision
+                    RoundingMode.HALF_UP
+            );
         }
 
         // Fetch commission data by product for the month
@@ -292,11 +317,18 @@ public class ProductCostService {
                         }
                 ));
 
-        // Enrich each DTO with commission and cost data
+        final BigDecimal finalExpensePerLiter = expensePerLiter;
+
+        // Enrich each DTO with commission, opCost and cost data
         return dtos.stream()
                 .peek(dto -> {
                     BigDecimal commission = commissionMap.getOrDefault(dto.getProductCode(), BigDecimal.ZERO);
                     dto.setSalesmanCommission(commission);
+
+                    // Calculate opCost for this product: expensePerLiter * volumeSold
+                    BigDecimal productVolume = dto.getVolumeSold() != null ? dto.getVolumeSold() : BigDecimal.ZERO;
+                    BigDecimal productOpCost = finalExpensePerLiter.multiply(productVolume);
+                    dto.setOpCost(productOpCost.setScale(2, RoundingMode.HALF_UP));
                 })
                 .map(this::enrichWithCost)
                 .collect(Collectors.toList());

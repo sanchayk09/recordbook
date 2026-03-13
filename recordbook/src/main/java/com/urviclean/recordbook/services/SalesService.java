@@ -319,4 +319,12 @@ public class SalesService {
             dailySummaryService.computeAndPersistSummary(alias, saleDate);
         }
     }
+
+    /**
+     * Get the DailySummaryService for computing and persisting summaries
+     * @return the DailySummaryService instance
+     */
+    public DailySummaryService getDailySummaryService() {
+        return dailySummaryService;
+    }
 }

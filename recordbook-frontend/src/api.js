@@ -118,29 +118,70 @@ export const salesAPI = {
   getLast15Days: () => api.get('/api/sales/filter/last-15-days'),
   getLast30Days: () => api.get('/api/sales/filter/last-30-days'),
   getLast90Days: () => api.get('/api/sales/filter/last-90-days'),
+  refreshDailySalesRecords: (startDate, endDate) => api.post('/api/sales/refresh', { startDate, endDate }),
   createSaleWithExpenses: (data) => api.post('/api/sales/sales-expense', data),
   getDailySalesDump: () => api.get('/api/sales/dump'),
-  getProductSalesSummary: () => api.get('/api/sales/summary/product-sales'),
-  getTodayProductSalesSummary: () => api.get('/api/sales/summary/product-sales/today'),
 };
 
-// Product Sales Summary API
+// Product Sales Summary API - UNIFIED ENDPOINT
+// All methods now use the same endpoint with different parameters
 export const productSalesSummaryAPI = {
-  getTodayProductSales: () => api.get('/api/sales/summary/product-sales/today'),
-  getProductSalesByDate: (date) => api.get(`/api/sales/summary/product-sales/date?date=${date}`),
-  getProductSalesByMonth: (year, month) => api.get(`/api/sales/summary/product-sales/month?year=${year}&month=${month}`),
-  getProductSalesByRange: (startDate, endDate) => api.get(`/api/sales/summary/product-sales/range?startDate=${startDate}&endDate=${endDate}`),
+  // All-time summary (no params)
   getAllProductSales: () => api.get('/api/sales/summary/product-sales'),
-  getLast7DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-7-days'),
-  getLast15DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-15-days'),
-  getLast30DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-30-days'),
-  getLast90DaysProductSales: () => api.get('/api/sales/summary/product-sales/last-90-days'),
+
+  // Date range (custom)
+  getProductSalesByRange: (startDate, endDate) =>
+    api.get(`/api/sales/summary/product-sales?startDate=${startDate}&endDate=${endDate}`),
+
+  // Specific date (same start and end date)
+  getProductSalesByDate: (date) =>
+    api.get(`/api/sales/summary/product-sales?startDate=${date}&endDate=${date}`),
+
+  // Monthly
+  getProductSalesByMonth: (year, month) =>
+    api.get(`/api/sales/summary/product-sales?year=${year}&month=${month}`),
+
+  // Convenience periods
+  getTodayProductSales: () =>
+    api.get('/api/sales/summary/product-sales?period=today'),
+
+  getLast7DaysProductSales: () =>
+    api.get('/api/sales/summary/product-sales?period=last7days'),
+
+  getLast15DaysProductSales: () =>
+    api.get('/api/sales/summary/product-sales?period=last15days'),
+
+  getLast30DaysProductSales: () =>
+    api.get('/api/sales/summary/product-sales?period=last30days'),
+
+  getLast90DaysProductSales: () =>
+    api.get('/api/sales/summary/product-sales?period=last90days'),
+
+  getCurrentMonthProductSales: () =>
+    api.get('/api/sales/summary/product-sales?period=currentMonth'),
+
+  // Flexible method - pass any combination of parameters
+  getProductSales: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate && params.endDate) {
+      queryParams.append('startDate', params.startDate);
+      queryParams.append('endDate', params.endDate);
+    } else if (params.period) {
+      queryParams.append('period', params.period);
+    } else if (params.year && params.month) {
+      queryParams.append('year', params.year);
+      queryParams.append('month', params.month);
+    }
+    const query = queryParams.toString();
+    return api.get(`/api/sales/summary/product-sales${query ? '?' + query : ''}`);
+  },
 };
 
 // Expense API
 export const expenseAPI = {
   getByDate: (salesman, date) => api.get(`/api/daily-expenses/salesman-date?alias=${encodeURIComponent(salesman)}&date=${date}`),
-  submitSalesWithExpense: (data) => api.post('/api/sales/sales-expense', data),
+  submitSalesOnly: (data) => api.post('/api/sales/sales-expense', data), // Sales only, no expenses
+  submitExpensesOnly: (data) => api.post('/api/sales/expenses', data), // Expenses only
   getAll: () => api.get('/api/daily-expenses'),
   getBySalesman: (salesman) => api.get(`/api/daily-expenses/salesman?alias=${encodeURIComponent(salesman)}`),
   getByDateOnly: (date) => api.get(`/api/daily-expenses/date?date=${date}`),
@@ -183,13 +224,43 @@ export const productCostAPI = {
   checkCodeExists: (productCode) => api.get(`/api/product-cost/exists/${productCode}`).then(res => ({ data: { exists: res.data } })), // alias for exists
 };
 
-// Summary API
+// Summary API - UNIFIED ENDPOINT
+// All query methods now use the same endpoint with different parameters
 export const summaryAPI = {
+  // POST - still separate (different HTTP method)
   submit: (data) => api.post('/api/summary/submit', data),
-  getBySalesmanDate: (alias, date) => api.get(`/api/summary/by-salesman-date?alias=${encodeURIComponent(alias)}&date=${date}`),
-  getAll: () => api.get('/api/summary/all'),
-  getBySalesman: (alias) => api.get(`/api/summary/salesman?alias=${encodeURIComponent(alias)}`),
-  getByDate: (date) => api.get(`/api/summary/date?date=${date}`),
-  getBySalesmanRange: (alias, startDate, endDate) => api.get(`/api/summary/salesman-range?alias=${encodeURIComponent(alias)}&startDate=${startDate}&endDate=${endDate}`),
-  getByRange: (startDate, endDate) => api.get(`/api/summary/range?startDate=${startDate}&endDate=${endDate}`),
+
+  // All summaries (no params)
+  getAll: () => api.get('/api/summary'),
+
+  // Single summary (alias + date) - returns single object
+  getBySalesmanDate: (alias, date) =>
+    api.get(`/api/summary?alias=${encodeURIComponent(alias)}&date=${date}`),
+
+  // Specific salesman (all dates)
+  getBySalesman: (alias) =>
+    api.get(`/api/summary?alias=${encodeURIComponent(alias)}`),
+
+  // Specific date (all salesmen)
+  getByDate: (date) =>
+    api.get(`/api/summary?date=${date}`),
+
+  // Salesman in date range
+  getBySalesmanRange: (alias, startDate, endDate) =>
+    api.get(`/api/summary?alias=${encodeURIComponent(alias)}&startDate=${startDate}&endDate=${endDate}`),
+
+  // All salesmen in date range
+  getByRange: (startDate, endDate) =>
+    api.get(`/api/summary?startDate=${startDate}&endDate=${endDate}`),
+
+  // Flexible method - pass any combination of parameters
+  get: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.alias) queryParams.append('alias', params.alias);
+    if (params.date) queryParams.append('date', params.date);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    const query = queryParams.toString();
+    return api.get(`/api/summary${query ? '?' + query : ''}`);
+  },
 };

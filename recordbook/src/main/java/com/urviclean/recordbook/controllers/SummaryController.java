@@ -45,70 +45,78 @@ public class SummaryController {
     }
 
     /**
-     * Get daily summary by salesman alias and date
-     * GET /api/summary/by-salesman-date?alias=muk/antr&date=2026-02-23
+     * UNIFIED Daily Summary Query Endpoint
+     *
+     * Flexible endpoint that handles all query patterns with optional parameters:
+     * - No params = all summaries
+     * - alias only = summaries for specific salesman (all dates)
+     * - date only = summaries for specific date (all salesmen)
+     * - alias + date = single summary for salesman on specific date
+     * - alias + startDate + endDate = summaries for salesman in date range
+     * - startDate + endDate = summaries for all salesmen in date range
+     *
+     * Examples:
+     * /api/summary (all summaries)
+     * /api/summary?alias=muk/antr (all dates for salesman)
+     * /api/summary?date=2026-02-23 (all salesmen on date)
+     * /api/summary?alias=muk/antr&date=2026-02-23 (single summary)
+     * /api/summary?alias=muk/antr&startDate=2026-02-01&endDate=2026-02-28 (salesman range)
+     * /api/summary?startDate=2026-02-01&endDate=2026-02-28 (all salesmen range)
      */
-    @GetMapping("/by-salesman-date")
-    public ResponseEntity<DailySummaryResponse> getSummary(
-            @RequestParam String alias,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        DailySummaryResponse response = dailySummaryService.getSummary(alias, date);
-        return ResponseEntity.ok(response);
-    }
+    @GetMapping
+    @Operation(
+        summary = "Get daily summaries with flexible filtering",
+        description = "Unified endpoint supporting queries by salesman, date, date range, or combinations"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Summaries retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "No summaries found matching criteria")
+    })
+    public ResponseEntity<?> getDailySummaries(
+            @Parameter(description = "Salesman alias", example = "muk/antr")
+            @RequestParam(required = false) String alias,
 
-    /**
-     * Get all daily summaries
-     * GET /api/summary/all
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<DailySummaryResponse>> getAllSummaries() {
+            @Parameter(description = "Specific date (YYYY-MM-DD)", example = "2026-02-23")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+
+            @Parameter(description = "Start date for range query (YYYY-MM-DD)", example = "2026-02-01")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+
+            @Parameter(description = "End date for range query (YYYY-MM-DD)", example = "2026-02-28")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        // Priority 1: Single summary (alias + date)
+        if (alias != null && date != null) {
+            DailySummaryResponse response = dailySummaryService.getSummary(alias, date);
+            return ResponseEntity.ok(response);
+        }
+
+        // Priority 2: Salesman in date range (alias + startDate + endDate)
+        if (alias != null && startDate != null && endDate != null) {
+            List<DailySummaryResponse> response = dailySummaryService.getSummariesByAliasAndDateRange(alias, startDate, endDate);
+            return ResponseEntity.ok(response);
+        }
+
+        // Priority 3: All salesmen in date range (startDate + endDate)
+        if (startDate != null && endDate != null) {
+            List<DailySummaryResponse> response = dailySummaryService.getSummariesByDateRange(startDate, endDate);
+            return ResponseEntity.ok(response);
+        }
+
+        // Priority 4: All summaries for specific salesman (alias only)
+        if (alias != null) {
+            List<DailySummaryResponse> response = dailySummaryService.getSummariesBySalesman(alias);
+            return ResponseEntity.ok(response);
+        }
+
+        // Priority 5: All summaries for specific date (date only)
+        if (date != null) {
+            List<DailySummaryResponse> response = dailySummaryService.getSummariesByDate(date);
+            return ResponseEntity.ok(response);
+        }
+
+        // Default: All summaries
         List<DailySummaryResponse> response = dailySummaryService.getAllSummaries();
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get summaries for specific salesman
-     * GET /api/summary/salesman?alias=muk/antr
-     */
-    @GetMapping("/salesman")
-    public ResponseEntity<List<DailySummaryResponse>> getSummariesBySalesman(@RequestParam String alias) {
-        List<DailySummaryResponse> response = dailySummaryService.getSummariesBySalesman(alias);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get summaries for specific date
-     * GET /api/summary/date?date=2026-02-23
-     */
-    @GetMapping("/date")
-    public ResponseEntity<List<DailySummaryResponse>> getSummariesByDate(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<DailySummaryResponse> response = dailySummaryService.getSummariesByDate(date);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get summaries for salesman in date range
-     * GET /api/summary/salesman-range?alias=muk/antr&startDate=2026-02-01&endDate=2026-02-28
-     */
-    @GetMapping("/salesman-range")
-    public ResponseEntity<List<DailySummaryResponse>> getSummariesByAliasAndDateRange(
-            @RequestParam String alias,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<DailySummaryResponse> response = dailySummaryService.getSummariesByAliasAndDateRange(alias, startDate, endDate);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Get summaries for all salesmen in date range
-     * GET /api/summary/range?startDate=2026-02-01&endDate=2026-02-28
-     */
-    @GetMapping("/range")
-    public ResponseEntity<List<DailySummaryResponse>> getSummariesByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<DailySummaryResponse> response = dailySummaryService.getSummariesByDateRange(startDate, endDate);
         return ResponseEntity.ok(response);
     }
 
