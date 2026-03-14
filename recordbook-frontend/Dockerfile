@@ -1,31 +1,20 @@
-# Multi-stage build for React application
+# Use the official Node.js 14 image.
+FROM node:14
 
-# Stage 1: Build the React app
-FROM node:20-alpine AS builder
+# Set the working directory in the container.
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and package-lock.json for dependency installation.
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --silent
+# Install the application dependencies.
+RUN npm ci
 
-# Copy source code
+# Copy the rest of the application files.
 COPY . .
 
-# Set API URL to use relative path (proxied by nginx)
-ENV REACT_APP_API_URL=""
+# Expose the API port.
+EXPOSE 3000
 
-# Build the application
-RUN npm run build
-
-# Stage 2: Serve with Nginx
-FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/build /usr/share/nginx/html
-
-# Expose port 80
-EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the application.
+CMD [ "npm", "start" ]
