@@ -1,20 +1,17 @@
-# Use the official Node.js 14 image.
-FROM node:14
+# Use Node 20 (LTS) - much more stable for modern React/Frontend apps
+FROM node:20-slim
 
-# Set the working directory in the container.
 WORKDIR /app
 
-# Copy package.json and package-lock.json for dependency installation.
+# Copy package files
 COPY package*.json ./
 
-# Install the application dependencies.
-RUN npm ci
+# npm install is safer here if your lockfile was made on a different OS/Node version
+RUN npm install
 
-# Copy the rest of the application files.
 COPY . .
 
-# Expose the API port.
+# Expose port 3000 (React default)
 EXPOSE 3000
 
-# Start the application.
 CMD [ "npm", "start" ]
