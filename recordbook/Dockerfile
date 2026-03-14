@@ -1,33 +1,22 @@
-# Multi-stage build for Spring Boot application
-
-# Stage 1: Build the application
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Stage 1: Build
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
 WORKDIR /app
-
-# Copy pom.xml and download dependencies
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copy source code and build
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn -DskipTests clean package
 
-# Stage 2: Run the application
-FROM eclipse-temurin:17-jre-alpine
+# Stage 2: Run
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# Copy fat jar
+COPY --from=builder /app/target/*.jar /app/app.jar
 
-# Copy the built jar from the build stage
-COPY --from=build /app/target/*.jar app.jar
+# Ensure config directory exists and copy YAML
+RUN mkdir -p /app/config
+COPY src/main/resources/application.yaml /app/config/application.yaml
 
-# Expose port 8080
 EXPOSE 8080
 
-# Set JVM options for better container performance
-ENV JAVA_OPTS="-Xms256m -Xmx512m"
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
-
+# Use spring.config.location to point to your external YAML
+ENTRYPOINT ["java", "-jar", "/app/app.jar", "--spring.config.location=file:/app/config/application.yaml"]
