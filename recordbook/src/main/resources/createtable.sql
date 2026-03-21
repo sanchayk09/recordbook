@@ -523,16 +523,16 @@ CREATE TABLE `salesman_ledger` (
   `delta_qty` int NOT NULL,
   `remarks` text,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `insert_month` varchar(7) GENERATED ALWAYS AS (DATE_FORMAT(`created_at`, '%Y-%m')) STORED,
   `created_by` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`salesman_ledger_id`),
-  KEY `idx_sl_salesman_created` (`salesman_alias`,`created_at`),
+  KEY `idx_sl_insert_month_salesman_created` (`insert_month`,`salesman_alias`,`created_at`),
   KEY `idx_sl_salesman_product_created` (`salesman_alias`,`product_code`,`created_at`),
   KEY `idx_sl_type_created` (`txn_type`,`created_at`),
   KEY `fk_sl_product_code` (`product_code`),
   CONSTRAINT `fk_sl_product_code` FOREIGN KEY (`product_code`) REFERENCES `product_cost_manual` (`product_code`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `fk_sl_salesman_alias` FOREIGN KEY (`salesman_alias`) REFERENCES `salesmen` (`alias`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=136 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `salesman_ledger`
@@ -542,162 +542,6 @@ LOCK TABLES `salesman_ledger` WRITE;
 /*!40000 ALTER TABLE `salesman_ledger` DISABLE KEYS */;
 INSERT INTO `salesman_ledger` VALUES (34,'san/antr','L1','ISSUE_FROM_WAREHOUSE',54,'Issued from warehouse. Salesman stock before: 0 after: 54','2026-03-05 23:12:51',NULL),(35,'san/antr','L500','ISSUE_FROM_WAREHOUSE',40,'Issued from warehouse. Salesman stock before: 0 after: 40','2026-03-05 23:12:51',NULL),(36,'san/antr','L5','ISSUE_FROM_WAREHOUSE',6,'Issued from warehouse. Salesman stock before: 0 after: 6','2026-03-05 23:12:52',NULL),(37,'san/antr','N1','ISSUE_FROM_WAREHOUSE',48,'Issued from warehouse. Salesman stock before: 0 after: 48','2026-03-05 23:12:52',NULL),(38,'san/antr','N500','ISSUE_FROM_WAREHOUSE',40,'Issued from warehouse. Salesman stock before: 0 after: 40','2026-03-05 23:12:52',NULL),(39,'san/antr','N5','ISSUE_FROM_WAREHOUSE',6,'Issued from warehouse. Salesman stock before: 0 after: 6','2026-03-05 23:12:53',NULL),(40,'muku/Rahul','L1','ISSUE_FROM_WAREHOUSE',72,'Issued from warehouse. Salesman stock before: 0 after: 72','2026-03-05 23:35:22',NULL),(41,'muku/Rahul','L500','ISSUE_FROM_WAREHOUSE',40,'Issued from warehouse. Salesman stock before: 0 after: 40','2026-03-05 23:35:22',NULL),(42,'muku/Rahul','L5','ISSUE_FROM_WAREHOUSE',10,'Issued from warehouse. Salesman stock before: 0 after: 10','2026-03-05 23:35:22',NULL),(43,'muku/Rahul','N1','ISSUE_FROM_WAREHOUSE',60,'Issued from warehouse. Salesman stock before: 0 after: 60','2026-03-05 23:35:23',NULL),(44,'muku/Rahul','N500','ISSUE_FROM_WAREHOUSE',44,'Issued from warehouse. Salesman stock before: 0 after: 44','2026-03-05 23:35:23',NULL),(45,'muku/Rahul','N5','ISSUE_FROM_WAREHOUSE',10,'Issued from warehouse. Salesman stock before: 0 after: 10','2026-03-05 23:35:23',NULL),(46,'san/antr','N1','SOLD',-1,'Sale created, saleId=238','2026-03-06 01:30:04','system'),(47,'san/antr','L500','SOLD',-4,'Sale created, saleId=239','2026-03-06 01:30:04','system'),(48,'san/antr','N1','SOLD',-2,'Sale created, saleId=240','2026-03-06 01:30:04','system'),(49,'san/antr','L1','SOLD',-2,'Sale created, saleId=241','2026-03-06 01:30:04','system'),(50,'san/antr','N1','SOLD',-2,'Sale created, saleId=242','2026-03-06 01:30:04','system'),(51,'san/antr','L1','SOLD',-2,'Sale created, saleId=243','2026-03-06 01:30:04','system'),(52,'san/antr','N1','SOLD',-2,'Sale created, saleId=244','2026-03-06 01:30:04','system'),(53,'san/antr','L1','SOLD',-2,'Sale created, saleId=245','2026-03-06 01:30:04','system'),(54,'san/antr','N500','SOLD',-2,'Sale created, saleId=246','2026-03-06 01:30:04','system'),(55,'san/antr','L500','SOLD',-2,'Sale created, saleId=247','2026-03-06 01:30:04','system'),(56,'san/antr','N1','SOLD',-1,'Sale created, saleId=248','2026-03-06 01:30:04','system'),(57,'san/antr','N1','SOLD',-1,'Sale created, saleId=249','2026-03-06 02:00:48','system'),(58,'san/antr','N1','SOLD',-12,'Sale created, saleId=250','2026-03-06 02:00:48','system'),(59,'san/antr','N500','SOLD',-1,'Sale created, saleId=251','2026-03-06 06:00:26','system'),(60,'san/antr','L500','SOLD',-1,'Sale created, saleId=252','2026-03-06 06:00:26','system'),(61,'san/antr','L500','SOLD',-2,'Sale created, saleId=253','2026-03-06 06:00:26','system'),(62,'san/antr','N500','SOLD',-2,'Sale created, saleId=254','2026-03-06 06:00:26','system'),(63,'san/antr','L1','SOLD',-1,'Sale created, saleId=255','2026-03-06 06:00:26','system'),(64,'san/antr','N1','SOLD',-1,'Sale created, saleId=256','2026-03-06 06:00:26','system'),(65,'san/antr','N5','SOLD',-1,'Sale created, saleId=257','2026-03-06 06:00:26','system'),(66,'san/antr','N5','SOLD',-1,'Sale created, saleId=258','2026-03-06 06:00:26','system'),(67,'san/antr','L5','SOLD',-1,'Sale created, saleId=259','2026-03-06 06:00:26','system'),(68,'san/antr','L1','SOLD',-1,'Sale created, saleId=260','2026-03-06 06:00:26','system'),(69,'san/antr','N1','SOLD',-2,'Sale created, saleId=261','2026-03-06 06:00:26','system'),(70,'san/antr','L500','SOLD',-1,'Sale created, saleId=262','2026-03-06 06:00:26','system'),(71,'san/antr','N500','SOLD',-1,'Sale created, saleId=263','2026-03-06 06:00:26','system'),(72,'muku/Rahul','N5','SOLD',-1,'Sale created, saleId=264','2026-03-06 06:11:22','system'),(73,'muku/Rahul','L5','SOLD',-1,'Sale created, saleId=265','2026-03-06 06:11:22','system'),(74,'muku/Rahul','L1','SOLD',-1,'Sale created, saleId=266','2026-03-06 06:11:22','system'),(75,'muku/Rahul','N500','SOLD',-3,'Sale created, saleId=267','2026-03-06 06:11:22','system'),(76,'muku/Rahul','L500','SOLD',-4,'Sale created, saleId=268','2026-03-06 06:11:22','system'),(77,'muku/Rahul','N5','SOLD',-1,'Sale created, saleId=269','2026-03-06 06:11:22','system'),(78,'muku/Rahul','N500','SOLD',-3,'Sale created, saleId=270','2026-03-06 06:11:22','system'),(79,'muku/Rahul','L5','SOLD',-1,'Sale created, saleId=271','2026-03-06 06:11:22','system'),(80,'muku/Rahul','L5','SOLD',-1,'Sale created, saleId=272','2026-03-06 06:11:22','system'),(81,'muku/Rahul','L5','SOLD',-1,'Sale created, saleId=273','2026-03-06 08:13:26','system'),(82,'muku/Rahul','N5','SOLD',-1,'Sale created, saleId=274','2026-03-06 08:13:26','system'),(83,'muku/Rahul','L5','SOLD',-1,'Sale created, saleId=275','2026-03-06 08:13:26','system'),(84,'muku/Rahul','L5','SOLD',-1,'Sale created, saleId=276','2026-03-06 08:13:26','system'),(85,'muku/Rahul','N5','SOLD',-1,'Sale created, saleId=277','2026-03-06 08:13:26','system'),(86,'muku/Rahul','N5','SOLD',-1,'Sale created, saleId=278','2026-03-06 08:13:26','system'),(87,'san/antr','N5','SOLD',-1,'Sale created, saleId=279','2026-03-06 10:05:05','system'),(88,'muku/Rahul','L1','RETURN_TO_WAREHOUSE',-71,'Returned to warehouse. Salesman stock before: 71 after: 0','2026-03-06 12:00:12',NULL),(89,'muku/Rahul','L500','RETURN_TO_WAREHOUSE',-36,'Returned to warehouse. Salesman stock before: 36 after: 0','2026-03-06 12:00:12',NULL),(90,'muku/Rahul','L5','RETURN_TO_WAREHOUSE',-4,'Returned to warehouse. Salesman stock before: 4 after: 0','2026-03-06 12:00:13',NULL),(91,'muku/Rahul','N1','RETURN_TO_WAREHOUSE',-60,'Returned to warehouse. Salesman stock before: 60 after: 0','2026-03-06 12:00:13',NULL),(92,'muku/Rahul','N500','RETURN_TO_WAREHOUSE',-38,'Returned to warehouse. Salesman stock before: 38 after: 0','2026-03-06 12:00:13',NULL),(93,'muku/Rahul','N5','RETURN_TO_WAREHOUSE',-5,'Returned to warehouse. Salesman stock before: 5 after: 0','2026-03-06 12:00:13',NULL),(94,'san/antr','L1','RETURN_TO_WAREHOUSE',-46,'Returned to warehouse. Salesman stock before: 46 after: 0','2026-03-09 00:28:15',NULL),(95,'san/antr','L500','RETURN_TO_WAREHOUSE',-30,'Returned to warehouse. Salesman stock before: 30 after: 0','2026-03-09 00:28:15',NULL),(96,'san/antr','L5','RETURN_TO_WAREHOUSE',-5,'Returned to warehouse. Salesman stock before: 5 after: 0','2026-03-09 00:28:16',NULL),(97,'san/antr','N1','RETURN_TO_WAREHOUSE',-24,'Returned to warehouse. Salesman stock before: 24 after: 0','2026-03-09 00:28:16',NULL),(98,'san/antr','N500','RETURN_TO_WAREHOUSE',-34,'Returned to warehouse. Salesman stock before: 34 after: 0','2026-03-09 00:28:16',NULL),(99,'san/antr','N5','RETURN_TO_WAREHOUSE',-3,'Returned to warehouse. Salesman stock before: 3 after: 0','2026-03-09 00:28:16',NULL),(100,'muk/antr','L1','ISSUE_FROM_WAREHOUSE',50,'Issued from warehouse. Salesman stock before: 0 after: 50','2026-03-09 00:29:59',NULL),(101,'muk/antr','L500','ISSUE_FROM_WAREHOUSE',20,'Issued from warehouse. Salesman stock before: 0 after: 20','2026-03-09 00:29:59',NULL),(102,'muk/antr','L5','ISSUE_FROM_WAREHOUSE',12,'Issued from warehouse. Salesman stock before: 0 after: 12','2026-03-09 00:29:59',NULL),(103,'muk/antr','N1','ISSUE_FROM_WAREHOUSE',50,'Issued from warehouse. Salesman stock before: 0 after: 50','2026-03-09 00:29:59',NULL),(104,'muk/antr','N500','ISSUE_FROM_WAREHOUSE',20,'Issued from warehouse. Salesman stock before: 0 after: 20','2026-03-09 00:29:59',NULL),(105,'muk/antr','N5','ISSUE_FROM_WAREHOUSE',12,'Issued from warehouse. Salesman stock before: 0 after: 12','2026-03-09 00:30:00',NULL),(106,'muk/antr','N5','SOLD',-1,'Sale created, saleId=283','2026-03-09 02:32:38','system'),(107,'muk/antr','L5','SOLD',-1,'Sale created, saleId=284','2026-03-09 02:32:39','system'),(108,'muk/antr','N5','SOLD',-1,'Sale created, saleId=285','2026-03-09 02:32:39','system'),(109,'muk/antr','L5','SOLD',-1,'Sale created, saleId=286','2026-03-09 02:32:39','system'),(110,'muk/antr','N5','SOLD',-1,'Sale created, saleId=287','2026-03-09 02:32:39','system'),(111,'muk/antr','L5','SOLD',-1,'Sale created, saleId=288','2026-03-09 02:32:39','system'),(112,'muk/antr','N5','SOLD',-1,'Sale created, saleId=289','2026-03-09 02:32:39','system'),(113,'muk/antr','L5','SOLD',-1,'Sale created, saleId=290','2026-03-09 02:32:39','system'),(114,'muk/antr','N5','SOLD',-1,'Sale created, saleId=291','2026-03-09 03:15:14','system'),(115,'muk/antr','N5','SOLD',-1,'Sale created, saleId=292','2026-03-09 03:15:14','system'),(116,'muk/antr','N1','SOLD',-1,'Sale created, saleId=293','2026-03-09 03:15:14','system'),(117,'muk/antr','L1','SOLD',-1,'Sale created, saleId=294','2026-03-09 03:15:14','system'),(118,'muk/antr','N5','SOLD',1,'Sale updated (stock reversal), saleId=291','2026-03-09 04:13:04','system'),(119,'muk/antr','N5','SOLD',-2,'Sale updated, saleId=291','2026-03-09 04:13:04','system'),(120,'muk/antr','N5','SOLD',-1,'Sale created, saleId=295','2026-03-09 04:15:13','system'),(121,'muk/antr','L5','SOLD',-1,'Sale created, saleId=296','2026-03-09 04:15:13','system'),(122,'muk/antr','L5','SOLD',-1,'Sale created, saleId=297','2026-03-09 04:15:14','system'),(123,'muk/antr','L5','SOLD',-1,'Sale created, saleId=298','2026-03-09 05:02:23','system'),(124,'muk/antr','L1','SOLD',-1,'Sale created, saleId=299','2026-03-09 05:02:23','system'),(125,'muk/antr','N5','SOLD',-1,'Sale created, saleId=300','2026-03-09 05:02:23','system'),(126,'muk/antr','L5','SOLD',-1,'Sale created, saleId=301','2026-03-09 05:02:23','system'),(127,'muk/antr','L5','SOLD',-1,'Sale created, saleId=302','2026-03-09 09:58:32','system'),(128,'muk/antr','L5','SOLD',-1,'Sale created, saleId=303','2026-03-09 09:58:33','system'),(129,'muk/antr','N5','SOLD',-1,'Sale created, saleId=304','2026-03-09 09:58:33','system'),(130,'muk/antr','L1','RETURN_TO_WAREHOUSE',-48,'Returned to warehouse. Salesman stock before: 48 after: 0','2026-03-09 10:11:21',NULL),(131,'muk/antr','L500','RETURN_TO_WAREHOUSE',-20,'Returned to warehouse. Salesman stock before: 20 after: 0','2026-03-09 10:11:21',NULL),(132,'muk/antr','L5','RETURN_TO_WAREHOUSE',-2,'Returned to warehouse. Salesman stock before: 2 after: 0','2026-03-09 10:11:22',NULL),(133,'muk/antr','N1','RETURN_TO_WAREHOUSE',-49,'Returned to warehouse. Salesman stock before: 49 after: 0','2026-03-09 10:11:22',NULL),(134,'muk/antr','N500','RETURN_TO_WAREHOUSE',-20,'Returned to warehouse. Salesman stock before: 20 after: 0','2026-03-09 10:11:22',NULL),(135,'muk/antr','N5','RETURN_TO_WAREHOUSE',-2,'Returned to warehouse. Salesman stock before: 2 after: 0','2026-03-09 10:11:22',NULL);
 /*!40000 ALTER TABLE `salesman_ledger` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `salesman_ledger_archive`
---
-
-DROP TABLE IF EXISTS `salesman_ledger_archive`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `salesman_ledger_archive` (
-  `salesman_ledger_id` bigint NOT NULL AUTO_INCREMENT,
-  `salesman_alias` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `product_code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `txn_type` enum('ISSUE_FROM_WAREHOUSE','SOLD','RETURN_TO_WAREHOUSE','MANUAL_ADJUST','DAMAGE') NOT NULL,
-  `delta_qty` int NOT NULL,
-  `remarks` text,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `created_by` varchar(100) DEFAULT NULL,
-  PRIMARY KEY (`salesman_ledger_id`),
-  KEY `idx_sl_salesman_created` (`salesman_alias`,`created_at`),
-  KEY `idx_sl_salesman_product_created` (`salesman_alias`,`product_code`,`created_at`),
-  KEY `idx_sl_type_created` (`txn_type`,`created_at`),
-  KEY `fk_sl_product_code` (`product_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `salesman_ledger_archive`
---
-
-LOCK TABLES `salesman_ledger_archive` WRITE;
-/*!40000 ALTER TABLE `salesman_ledger_archive` DISABLE KEYS */;
-/*!40000 ALTER TABLE `salesman_ledger_archive` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `salesman_stock_summary`
---
-
-DROP TABLE IF EXISTS `salesman_stock_summary`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `salesman_stock_summary` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `salesman_alias` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `product_code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `current_stock` int NOT NULL DEFAULT '0',
-  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_salesman_product` (`salesman_alias`,`product_code`),
-  KEY `idx_salesman_alias` (`salesman_alias`),
-  KEY `idx_product_code` (`product_code`),
-  KEY `idx_last_updated` (`last_updated`),
-  CONSTRAINT `fk_summary_product` FOREIGN KEY (`product_code`) REFERENCES `product_cost_manual` (`product_code`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_summary_salesman` FOREIGN KEY (`salesman_alias`) REFERENCES `salesmen` (`alias`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `salesman_stock_summary`
---
-
-LOCK TABLES `salesman_stock_summary` WRITE;
-/*!40000 ALTER TABLE `salesman_stock_summary` DISABLE KEYS */;
-INSERT INTO `salesman_stock_summary` VALUES (49,'san/antr','L1',0,'2026-03-09 05:58:15','2026-03-06 04:42:51'),(50,'san/antr','L500',0,'2026-03-09 05:58:15','2026-03-06 04:42:51'),(51,'san/antr','L5',0,'2026-03-09 05:58:16','2026-03-06 04:42:52'),(52,'san/antr','N1',0,'2026-03-09 05:58:16','2026-03-06 04:42:52'),(53,'san/antr','N500',0,'2026-03-09 05:58:16','2026-03-06 04:42:52'),(54,'san/antr','N5',0,'2026-03-09 05:58:17','2026-03-06 04:42:53'),(55,'muku/Rahul','L1',0,'2026-03-06 17:30:12','2026-03-06 05:05:22'),(56,'muku/Rahul','L500',0,'2026-03-06 17:30:12','2026-03-06 05:05:22'),(57,'muku/Rahul','L5',0,'2026-03-06 17:30:13','2026-03-06 05:05:22'),(58,'muku/Rahul','N1',0,'2026-03-06 17:30:13','2026-03-06 05:05:23'),(59,'muku/Rahul','N500',0,'2026-03-06 17:30:13','2026-03-06 05:05:23'),(60,'muku/Rahul','N5',0,'2026-03-06 17:30:13','2026-03-06 05:05:23'),(61,'muk/antr','L1',0,'2026-03-09 15:41:21','2026-03-09 05:59:59'),(62,'muk/antr','L500',0,'2026-03-09 15:41:21','2026-03-09 05:59:59'),(63,'muk/antr','L5',0,'2026-03-09 15:41:22','2026-03-09 05:59:59'),(64,'muk/antr','N1',0,'2026-03-09 15:41:22','2026-03-09 05:59:59'),(65,'muk/antr','N500',0,'2026-03-09 15:41:22','2026-03-09 05:59:59'),(66,'muk/antr','N5',0,'2026-03-09 15:41:22','2026-03-09 06:00:00');
-/*!40000 ALTER TABLE `salesman_stock_summary` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `salesmen`
---
-
-DROP TABLE IF EXISTS `salesmen`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `salesmen` (
-  `salesman_id` bigint NOT NULL AUTO_INCREMENT,
-  `first_name` varchar(255) DEFAULT NULL,
-  `last_name` varchar(255) DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
-  `contact_number` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `alias` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  PRIMARY KEY (`salesman_id`),
-  UNIQUE KEY `uk_sales` (`alias`),
-  KEY `idx_salesmen_name` (`last_name`,`first_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `salesmen`
---
-
-LOCK TABLES `salesmen` WRITE;
-/*!40000 ALTER TABLE `salesmen` DISABLE KEYS */;
-INSERT INTO `salesmen` VALUES (1,'muku/antrich','NA','Peterbar','7870819144','2026-02-21 12:10:34','muk/antr'),(2,'Mukul','Kartik','Peterbar','','2026-02-26 01:05:33','munnu/mukul'),(4,'Sanjeev','Antrich','Peterbar','8989898989','2026-03-05 11:56:42','san/antr'),(5,'Rahul','Mukul','Peterbar','879856893','2026-03-05 11:57:20','muku/Rahul'),(6,'Puran ','Mahata','Peterbar','8969666777','2026-03-13 02:15:21','PuranM');
-/*!40000 ALTER TABLE `salesmen` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `vendors`
---
-
-DROP TABLE IF EXISTS `vendors`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `vendors` (
-  `vendor_id` bigint NOT NULL AUTO_INCREMENT,
-  `vendor_name` varchar(255) DEFAULT NULL,
-  `first_name` varchar(255) DEFAULT NULL,
-  `last_name` varchar(255) DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
-  `contact_number` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`vendor_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `vendors`
---
-
-LOCK TABLES `vendors` WRITE;
-/*!40000 ALTER TABLE `vendors` DISABLE KEYS */;
-/*!40000 ALTER TABLE `vendors` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `warehouse_inventory`
---
-
-DROP TABLE IF EXISTS `warehouse_inventory`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `warehouse_inventory` (
-  `warehouse_inventory_id` bigint NOT NULL AUTO_INCREMENT,
-  `product_code` varchar(255) NOT NULL,
-  `qty_available` int NOT NULL DEFAULT '0' COMMENT 'Current physical stock in warehouse (PCS)',
-  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`warehouse_inventory_id`),
-  UNIQUE KEY `uk_warehouse_product_code` (`product_code`),
-  KEY `idx_warehouse_product_code` (`product_code`),
-  CONSTRAINT `chk_qty_not_negative` CHECK ((`qty_available` >= 0))
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Current warehouse stock - sellable inventory only';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `warehouse_inventory`
---
-
-LOCK TABLES `warehouse_inventory` WRITE;
-/*!40000 ALTER TABLE `warehouse_inventory` DISABLE KEYS */;
-INSERT INTO `warehouse_inventory` VALUES (7,'N500',74,'2026-03-09 15:41:22','2026-03-05 11:11:22'),(8,'N1',122,'2026-03-09 15:41:22','2026-03-05 11:11:44'),(9,'N5',12,'2026-03-09 15:41:22','2026-03-05 11:11:58'),(10,'L500',239,'2026-03-09 15:41:21','2026-03-05 11:13:17'),(11,'L1',233,'2026-03-09 15:41:21','2026-03-05 11:13:33'),(12,'L5',2,'2026-03-09 15:41:22','2026-03-05 11:14:25');
-/*!40000 ALTER TABLE `warehouse_inventory` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -717,8 +561,10 @@ CREATE TABLE `warehouse_ledger` (
   `salesman_alias` varchar(255) DEFAULT NULL,
   `remarks` text,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `insert_month` varchar(7) GENERATED ALWAYS AS (DATE_FORMAT(`created_at`, '%Y-%m')) STORED,
   `created_by` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`warehouse_ledger_id`),
+  KEY `idx_ledger_insert_month_product_code` (`insert_month`,`product_code`),
   KEY `idx_ledger_product_code` (`product_code`),
   KEY `idx_ledger_txn_type` (`txn_type`),
   KEY `idx_ledger_salesman` (`salesman_alias`),
@@ -732,11 +578,11 @@ CREATE TABLE `warehouse_ledger` (
 
 LOCK TABLES `warehouse_ledger` WRITE;
 /*!40000 ALTER TABLE `warehouse_ledger` DISABLE KEYS */;
-INSERT INTO `warehouse_ledger` VALUES (179,'N500','TRANSFER_IN',86,0,86,NULL,'Initial Entry','2026-03-05 11:11:23',NULL),(180,'N1','TRANSFER_IN',147,0,147,NULL,'Initial Entry','2026-03-05 11:11:44',NULL),(181,'N5','TRANSFER_IN',30,0,30,NULL,'Initial Entry','2026-03-05 11:11:58',NULL),(182,'L500','TRANSFER_IN',253,0,253,NULL,'Initial Entry','2026-03-05 11:13:17',NULL),(183,'L1','TRANSFER_IN',244,0,244,NULL,'Initial Entry','2026-03-05 11:13:33',NULL),(184,'L5','TRANSFER_IN',19,0,19,NULL,'Initial Entry','2026-03-05 11:14:25',NULL),(185,'L1','ISSUE_TO_SALESMAN',-54,244,190,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:51',NULL),(186,'L500','ISSUE_TO_SALESMAN',-40,253,213,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:51',NULL),(187,'L5','ISSUE_TO_SALESMAN',-6,19,13,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:52',NULL),(188,'N1','ISSUE_TO_SALESMAN',-48,147,99,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:52',NULL),(189,'N500','ISSUE_TO_SALESMAN',-40,86,46,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:52',NULL),(190,'N5','ISSUE_TO_SALESMAN',-6,30,24,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:53',NULL),(191,'L1','ISSUE_TO_SALESMAN',-72,190,118,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:22',NULL),(192,'L500','ISSUE_TO_SALESMAN',-40,213,173,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:22',NULL),(193,'L5','ISSUE_TO_SALESMAN',-10,13,3,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:22',NULL),(194,'N1','ISSUE_TO_SALESMAN',-60,99,39,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:23',NULL),(195,'N500','ISSUE_TO_SALESMAN',-44,46,2,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:23',NULL),(196,'N5','ISSUE_TO_SALESMAN',-10,24,14,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:23',NULL),(197,'L1','RETURN_FROM_SALESMAN',71,118,189,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:12',NULL),(198,'L500','RETURN_FROM_SALESMAN',36,173,209,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:12',NULL),(199,'L5','RETURN_FROM_SALESMAN',4,3,7,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(200,'N1','RETURN_FROM_SALESMAN',60,39,99,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(201,'N500','RETURN_FROM_SALESMAN',38,2,40,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(202,'N5','RETURN_FROM_SALESMAN',5,14,19,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(203,'L1','RETURN_FROM_SALESMAN',46,189,235,'san/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:15',NULL),(204,'L500','RETURN_FROM_SALESMAN',30,209,239,'san/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:15',NULL),(205,'L5','RETURN_FROM_SALESMAN',5,7,12,'san/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:16',NULL),(206,'N1','RETURN_FROM_SALESMAN',24,99,123,'san/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:16',NULL),(207,'N500','RETURN_FROM_SALESMAN',34,40,74,'san/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:16',NULL),(208,'N5','RETURN_FROM_SALESMAN',3,19,22,'san/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:17',NULL),(209,'L1','ISSUE_TO_SALESMAN',-50,235,185,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(210,'L500','ISSUE_TO_SALESMAN',-20,239,219,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(211,'L5','ISSUE_TO_SALESMAN',-12,12,0,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(212,'N1','ISSUE_TO_SALESMAN',-50,123,73,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(213,'N500','ISSUE_TO_SALESMAN',-20,74,54,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(214,'N5','ISSUE_TO_SALESMAN',-12,22,10,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:30:00',NULL),(215,'L1','RETURN_FROM_SALESMAN',48,185,233,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:21',NULL),(216,'L500','RETURN_FROM_SALESMAN',20,219,239,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:21',NULL),(217,'L5','RETURN_FROM_SALESMAN',2,0,2,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL),(218,'N1','RETURN_FROM_SALESMAN',49,73,122,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL),(219,'N500','RETURN_FROM_SALESMAN',20,54,74,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL),(220,'N5','RETURN_FROM_SALESMAN',2,10,12,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL);
+INSERT INTO `warehouse_ledger` VALUES (179,'N500','TRANSFER_IN',86,0,86,NULL,'Initial Entry','2026-03-05 11:11:23',NULL),(180,'N1','TRANSFER_IN',147,0,147,NULL,'Initial Entry','2026-03-05 11:11:44',NULL),(181,'N5','TRANSFER_IN',30,0,30,NULL,'Initial Entry','2026-03-05 11:11:58',NULL),(182,'L500','TRANSFER_IN',253,0,253,NULL,'Initial Entry','2026-03-05 11:13:17',NULL),(183,'L1','TRANSFER_IN',244,0,244,NULL,'Initial Entry','2026-03-05 11:13:33',NULL),(184,'L5','TRANSFER_IN',19,0,19,NULL,'Initial Entry','2026-03-05 11:14:25',NULL),(185,'L1','ISSUE_TO_SALESMAN',-54,244,190,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:51',NULL),(186,'L500','ISSUE_TO_SALESMAN',-40,253,213,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:51',NULL),(187,'L5','ISSUE_TO_SALESMAN',-6,19,13,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:52',NULL),(188,'N1','ISSUE_TO_SALESMAN',-48,147,99,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:52',NULL),(189,'N500','ISSUE_TO_SALESMAN',-40,86,46,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:52',NULL),(190,'N5','ISSUE_TO_SALESMAN',-6,30,24,'san/antr','Issue stock to salesman on 06-03-2026','2026-03-05 23:12:53',NULL),(191,'L1','ISSUE_TO_SALESMAN',-72,190,118,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:22',NULL),(192,'L500','ISSUE_TO_SALESMAN',-40,213,173,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:22',NULL),(193,'L5','ISSUE_TO_SALESMAN',-10,13,3,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:22',NULL),(194,'N1','ISSUE_TO_SALESMAN',-60,99,39,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:23',NULL),(195,'N500','ISSUE_TO_SALESMAN',-44,46,2,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:23',NULL),(196,'N5','ISSUE_TO_SALESMAN',-10,24,14,'muku/Rahul','Issue stock to salesman on 06-03-2026','2026-03-05 23:35:23',NULL),(197,'L1','RETURN_FROM_SALESMAN',71,118,189,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:12',NULL),(198,'L500','RETURN_FROM_SALESMAN',36,173,209,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:12',NULL),(199,'L5','RETURN_FROM_SALESMAN',4,3,7,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(200,'N1','RETURN_FROM_SALESMAN',60,39,99,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(201,'N500','RETURN_FROM_SALESMAN',38,2,40,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(202,'N5','RETURN_FROM_SALESMAN',5,14,19,'muku/Rahul','Return stock from salesman on 06-03-2026','2026-03-06 12:00:13',NULL),(203,'L1','RETURN_FROM_SALESMAN',46,189,235,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:15',NULL),(204,'L500','RETURN_FROM_SALESMAN',30,209,239,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:15',NULL),(205,'L5','RETURN_FROM_SALESMAN',5,7,12,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:16',NULL),(206,'N1','RETURN_FROM_SALESMAN',24,99,123,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:16',NULL),(207,'N500','RETURN_FROM_SALESMAN',34,40,74,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:16',NULL),(208,'N5','RETURN_FROM_SALESMAN',3,19,22,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 00:28:17',NULL),(209,'L1','ISSUE_TO_SALESMAN',-50,235,185,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(210,'L500','ISSUE_TO_SALESMAN',-20,239,219,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(211,'L5','ISSUE_TO_SALESMAN',-12,12,0,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(212,'N1','ISSUE_TO_SALESMAN',-50,123,73,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(213,'N500','ISSUE_TO_SALESMAN',-20,74,54,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(214,'N5','ISSUE_TO_SALESMAN',-12,22,10,'muk/antr','Issue stock to salesman on 09-03-2026','2026-03-09 00:29:59',NULL),(215,'L1','RETURN_FROM_SALESMAN',48,185,233,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:21',NULL),(216,'L500','RETURN_FROM_SALESMAN',20,219,239,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:21',NULL),(217,'L5','RETURN_FROM_SALESMAN',2,0,2,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL),(218,'N1','RETURN_FROM_SALESMAN',49,73,122,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL),(219,'N500','RETURN_FROM_SALESMAN',20,54,74,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL),(220,'N5','RETURN_FROM_SALESMAN',2,10,12,'muk/antr','Return stock from salesman on 09-03-2026','2026-03-09 10:11:22',NULL);
 /*!40000 ALTER TABLE `warehouse_ledger` ENABLE KEYS */;
 UNLOCK TABLES;
 
---
+/*
 -- Table structure for table `warehouse_ledger_archive`
 --
 
@@ -760,9 +606,6 @@ CREATE TABLE `warehouse_ledger_archive` (
   KEY `idx_ledger_salesman` (`salesman_alias`),
   KEY `idx_ledger_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Audit trail for all warehouse stock movements';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Dumping data for table `warehouse_ledger_archive`
 --
 
@@ -770,6 +613,7 @@ LOCK TABLES `warehouse_ledger_archive` WRITE;
 /*!40000 ALTER TABLE `warehouse_ledger_archive` DISABLE KEYS */;
 /*!40000 ALTER TABLE `warehouse_ledger_archive` ENABLE KEYS */;
 UNLOCK TABLES;
+*/
 
 --
 -- Table structure for table `warehouses`

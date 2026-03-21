@@ -16,10 +16,7 @@ import java.time.LocalDateTime;
  * The warehouse_ledger is separate and only tracks warehouse movements.
  */
 @Entity
-@Table(name = "salesman_ledger", indexes = {
-    @Index(name = "idx_sl_salesman_created", columnList = "salesman_alias, created_at"),
-    @Index(name = "idx_sl_salesman_product_created", columnList = "salesman_alias, product_code, created_at")
-})
+@Table(name = "salesman_ledger")
 public class SalesmanLedger {
 
     @Id
@@ -144,4 +141,3 @@ public class SalesmanLedger {
                 '}';
     }
 }
-

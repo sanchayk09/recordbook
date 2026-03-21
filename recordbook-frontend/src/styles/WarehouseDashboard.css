@@ -395,7 +395,7 @@
 
 .product-code-cell {
   font-weight: 600;
-  color: #667eea;
+  color: #10b981;
   font-family: 'Courier New', monospace;
 }
 
@@ -406,47 +406,41 @@
 }
 
 .quantity-edit-input {
-  width: 100px;
+  width: 110px;
   padding: 8px 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid #ddd;
   border-radius: 6px;
-  font-size: 1em;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  font-size: 1.1em;
+  margin-right: 6px;
 }
 
 .quantity-edit-input:focus {
+  border-color: #10b981;
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.quantity-edit-input:hover {
-  border-color: #667eea;
 }
 
 .unit-text {
-  color: #6c757d;
-  font-size: 0.9em;
-  font-weight: 500;
+  margin-left: 2px;
+  color: #333;
+  font-size: 1em;
+  min-width: 30px;
 }
 
 /* Remove button */
 .btn-remove {
-  padding: 8px 16px;
-  background: #dc3545;
+  padding: 8px 18px;
+  background: #e74c3c;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 1.2em;
-  transition: all 0.3s ease;
-  line-height: 1;
+  transition: background 0.2s;
+  margin-left: 8px;
 }
 
 .btn-remove:hover {
-  background: #c82333;
-  transform: scale(1.1);
+  background: #c0392b;
 }
 
 /* Issue actions */
@@ -478,6 +472,210 @@
 .issue-actions .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ============================================================ */
+/* ISSUE TAB POLISH                                             */
+/* ============================================================ */
+
+.issue-tab-content .warehouse-form {
+  max-width: 920px;
+}
+
+.issue-tab-content .warehouse-form h3 {
+  margin: 0 0 16px;
+  color: #2d3748;
+  font-size: 1.2em;
+}
+
+.issue-tab-content .form-group {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.issue-tab-content .btn-submit {
+  border-radius: 10px;
+}
+
+.issue-tab-content .issue-stock-container {
+  display: grid;
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.issue-tab-content .product-selection {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.issue-tab-content .product-selection h4,
+.issue-tab-content .issue-list-section h4 {
+  margin: 0 0 14px;
+  color: #1f2937;
+  font-size: 1.05em;
+}
+
+.issue-tab-content .product-list {
+  display: grid;
+  gap: 10px;
+}
+
+.issue-tab-content .product-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.issue-tab-content .product-name {
+  margin: 0;
+  padding: 12px 14px;
+  font-weight: 600;
+  color: #1f2937;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.issue-tab-content .product-name:hover {
+  background: #eef2ff;
+}
+
+.issue-tab-content .product-variants {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.issue-tab-content .product-variant-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.issue-tab-content .variant-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.issue-tab-content .variant-code {
+  font-weight: 700;
+  color: #059669;
+  font-family: 'Courier New', monospace;
+}
+
+.issue-tab-content .variant-details {
+  font-size: 0.92em;
+  color: #6b7280;
+}
+
+.issue-tab-content .variant-quantity {
+  min-width: 96px;
+}
+
+.issue-tab-content .quantity-input,
+.issue-tab-content .quantity-edit-input {
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 1em;
+}
+
+.issue-tab-content .quantity-input {
+  width: 96px;
+}
+
+.issue-tab-content .quantity-edit-input {
+  width: 90px;
+}
+
+.issue-tab-content .quantity-input:focus,
+.issue-tab-content .quantity-edit-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  outline: none;
+}
+
+.issue-tab-content .actions {
+  margin-top: 14px;
+}
+
+.issue-tab-content .btn-add-to-list {
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.issue-tab-content .btn-add-to-list:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+}
+
+.issue-tab-content .btn-add-to-list:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.issue-tab-content .issue-list-section {
+  margin-top: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.issue-tab-content .issue-list-table th {
+  font-size: 0.95em;
+}
+
+.issue-tab-content .issue-list-table td {
+  vertical-align: middle;
+}
+
+.issue-tab-content .issue-actions {
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .issue-tab-content .product-variant-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .issue-tab-content .variant-quantity,
+  .issue-tab-content .quantity-input {
+    width: 100%;
+  }
+
+  .issue-tab-content .quantity-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .issue-tab-content .quantity-edit-input {
+    width: 100%;
+  }
+
+  .issue-tab-content .btn-remove {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 /* ============================================================ */
@@ -586,81 +784,81 @@
 
 /* New Grid Layout for Products */
 .product-codes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
 }
 
 .product-code-item-new {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  background: white;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
-  transition: all 0.3s ease;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 18px;
+  background: #fffbe7;
+  border-radius: 10px;
+  border: 1.5px solid #ffd166;
+  box-shadow: 0 2px 8px rgba(255, 209, 102, 0.08);
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
 
 .product-code-item-new:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+  border-color: #10b981;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.10);
 }
 
 .product-code-header {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  align-items: flex-start;
+  min-width: 80px;
+  margin-right: 10px;
 }
 
 .product-code-badge {
   font-weight: 700;
-  color: #667eea;
-  font-size: 1em;
-  padding: 4px 8px;
-  background: rgba(102, 126, 234, 0.1);
-  border-radius: 4px;
-  display: inline-block;
-  width: fit-content;
+  color: #fff;
+  background: #f4a300;
+  font-size: 1.15em;
+  padding: 6px 18px;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+  box-shadow: 0 1px 4px rgba(244, 163, 0, 0.10);
 }
 
 .product-variant-text {
-  font-size: 0.85em;
-  color: #6c757d;
+  font-size: 1em;
+  color: #333;
   font-weight: 500;
+  margin-top: 2px;
 }
 
 .product-metric {
-  font-size: 0.8em;
-  color: #6c757d;
-  padding: 3px 6px;
-  background: #f8f9fa;
-  border-radius: 3px;
-  width: fit-content;
+  font-size: 0.95em;
+  color: #059669;
+  background: #f0f7ff;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-top: 2px;
 }
 
 .quantity-input-new {
-  padding: 10px;
+  width: 90px;
+  padding: 8px 12px;
   border: 2px solid #e9ecef;
   border-radius: 6px;
-  font-size: 1em;
-  transition: all 0.3s ease;
-  width: 100%;
+  font-size: 1.1em;
+  font-family: inherit;
+  transition: border-color 0.3s;
+  margin-left: 10px;
+  margin-right: 4px;
+  background: #fff;
 }
 
 .quantity-input-new:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.quantity-input-new:not(:placeholder-shown) {
   border-color: #10b981;
-  background: rgba(16, 185, 129, 0.05);
+  outline: none;
 }
 
 /* Old styles kept for compatibility */
@@ -756,7 +954,179 @@
   transform: translateY(-2px);
 }
 
-/* Responsive */
+/* Product selection list */
+.product-selection-list {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.product-name-group {
+  margin-bottom: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.08);
+  padding: 8px 12px;
+}
+
+.product-name-header {
+  font-size: 1.15em;
+  font-weight: bold;
+  color: #764ba2;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+.product-name-header:hover {
+  color: #10b981;
+}
+
+.product-codes-list {
+  margin-top: 8px;
+  margin-left: 24px;
+}
+
+.product-code-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  background: #f0f7ff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.07);
+}
+
+.product-code-badge {
+  min-width: 60px;
+  font-weight: bold;
+  color: #667eea;
+  font-family: 'Courier New', monospace;
+  font-size: 1.05em;
+}
+
+.product-variant-text {
+  margin-left: 8px;
+  color: #764ba2;
+  font-size: 0.98em;
+}
+
+.product-metric {
+  margin-left: 8px;
+  color: #059669;
+  font-size: 0.95em;
+}
+
+.quantity-input-new {
+  margin-left: 16px;
+  width: 80px;
+  padding: 6px 10px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+  font-family: inherit;
+  transition: border-color 0.3s;
+}
+.quantity-input-new:focus {
+  border-color: #10b981;
+  outline: none;
+}
+
+.unit-text {
+  margin-left: 4px;
+  color: #333;
+  font-size: 0.95em;
+}
+
+/* Issue List Table */
+.issue-list-section {
+  margin-top: 24px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+}
+.issue-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+.issue-list-table th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px;
+  font-size: 1em;
+  font-weight: 600;
+}
+.issue-list-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+.product-code-cell {
+  font-weight: bold;
+  color: #10b981;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1em;
+}
+.quantity-cell {
+  display: flex;
+  align-items: center;
+}
+.quantity-edit-input {
+  width: 110px;
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 1.1em;
+  margin-right: 6px;
+}
+.quantity-edit-input:focus {
+  border-color: #10b981;
+  outline: none;
+}
+.btn-remove {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  cursor: pointer;
+  font-size: 1.2em;
+  transition: background 0.2s;
+  margin-left: 8px;
+}
+.btn-remove:hover {
+  background: #c0392b;
+}
+.issue-actions {
+  text-align: right;
+  margin-top: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 700px) {
+  .product-selection-list,
+  .issue-list-section {
+    padding: 8px;
+  }
+  .product-name-header {
+    font-size: 1em;
+  }
+  .product-code-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 4px;
+  }
+  .quantity-input-new,
+  .quantity-edit-input {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 6px;
+  }
+}
+
 @media (max-width: 768px) {
   .warehouse-header {
     padding: 20px;

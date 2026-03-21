@@ -185,7 +185,7 @@ const DailySalesSummary = () => {
     // Apply village filter
     if (selectedVillage) {
       filtered = filtered.filter(record =>
-        record.village && record.village.toLowerCase() === selectedVillage.toLowerCase()
+        record.village && record.village.toLowerCase().includes(selectedVillage.toLowerCase())
       );
     }
 

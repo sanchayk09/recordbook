@@ -11,6 +11,7 @@ import ProductSalesSummary from './pages/ProductSalesSummary';
 import ProductCostManager from './pages/ProductCostManager';
 import WarehouseDashboard from './pages/WarehouseDashboard';
 import ExpenseManager from './pages/ExpenseManager';
+import MaintenancePage from './pages/MaintenancePage';
 
 function AppContent() {
 
@@ -29,6 +30,7 @@ function AppContent() {
           <Route path="/product-cost-manager" element={<ProductCostManager />} />
           <Route path="/warehouse" element={<WarehouseDashboard />} />
           <Route path="/expense-manager" element={<ExpenseManager />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/daily-summary-report" element={
             <React.Suspense fallback={<div>Loading...</div>}>
               {React.createElement(require('./pages/DailySummaryReport').default)}

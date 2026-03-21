@@ -77,7 +77,7 @@ export const routeAPI = {
   delete: (id) => api.delete(`/api/routes/${id}`),
   getAllVillages: () => api.get('/api/routes/villages'),
   getVillageById: (id) => api.get(`/api/routes/villages/${id}`),
-  getVillages: (routeId) => api.get('/api/routes/villages').then(res => ({ data: Array.isArray(res.data) ? res.data.filter(v => v.routeId == routeId) : [] })), // Client-side filter
+  getVillages: (routeId) => api.get('/api/routes/villages').then(res => ({ data: Array.isArray(res.data) ? res.data.filter(v => v.routeId === routeId) : [] })), // Client-side filter
   createVillage: (data) => api.post('/api/routes/villages', data),
   addVillage: (data) => api.post('/api/routes/villages', data), // alias for createVillage
   updateVillage: (id, data) => api.put(`/api/routes/villages/${id}`, data),
@@ -95,6 +95,10 @@ export const salesmanAPI = {
 export const customerAPI = {
   getAll: () => api.get('/api/admin/customers'),
   create: (data) => api.post('/api/admin/customers', data),
+};
+
+export const maintenanceAPI = {
+  copyDatabase: (data) => api.post('/api/maintenance/database/copy', data),
 };
 
 // Product API

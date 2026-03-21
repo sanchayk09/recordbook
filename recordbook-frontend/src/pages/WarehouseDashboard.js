@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { warehouseAPI, salesmanAPI, productCostAPI } from '../api';
 import { notifySuccess, notifyError } from '../utils/toast';
 import { cacheUtils } from '../utils/cacheUtils';
@@ -10,18 +10,14 @@ const WarehouseDashboard = () => {
   const [ledger, setLedger] = useState([]);
   const [salesmen, setSalesmen] = useState([]);
   const [salesmenStock, setSalesmenStock] = useState([]); // New state for salesmen stock summary
-  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSalesmanCard, setSelectedSalesmanCard] = useState(null); // For viewing salesman details
 
   // New states for improved Issue Stock flow
   const [selectedSalesmanForIssue, setSelectedSalesmanForIssue] = useState('');
-  const [showIssueModal, setShowIssueModal] = useState(false);
   const [showIssueConfirmModal, setShowIssueConfirmModal] = useState(false);
   const [issueList, setIssueList] = useState([]); // List of items to issue
 
-  // New states for product modal
-  const [selectedProductName, setSelectedProductName] = useState('');
   const [selectedProductCodes, setSelectedProductCodes] = useState({}); // { productCode: quantity }
   const [availableProductNames, setAvailableProductNames] = useState([]); // Unique product names
   const [productCodesByName, setProductCodesByName] = useState({}); // { productName: [codes] }
@@ -33,12 +29,9 @@ const WarehouseDashboard = () => {
   const [showReturnAllModal, setShowReturnAllModal] = useState(false);
   const [showReturnSelectedModal, setShowReturnSelectedModal] = useState(false);
 
-  const [adjustForm, setAdjustForm] = useState({
-    productCode: '',
-    quantity: '',
-    txnType: 'TRANSFER_IN',
-    remarks: '',
-  });
+  // Add new state for expand/collapse
+  const [expandedProductNames, setExpandedProductNames] = useState([]);
+  const productItemRefs = useRef({});
 
   // Wrap all load functions with useCallback to prevent duplicate API calls
   const loadInventory = useCallback(async () => {
@@ -156,7 +149,6 @@ const WarehouseDashboard = () => {
     try {
       const response = await productCostAPI.getAll();
       const productList = Array.isArray(response.data) ? response.data : [];
-      setProducts(productList);
 
       // Create mapping of product names to product codes
       const names = [];
@@ -196,7 +188,6 @@ const WarehouseDashboard = () => {
       if (error.response?.status === 500) {
         notifyError('Backend error loading products. Please check backend server logs.');
       }
-      setProducts([]);
     }
   }, []);
 
@@ -224,62 +215,59 @@ const WarehouseDashboard = () => {
     loadSalesmenStock();
   }, [loadInventory, loadSalesmen, loadProducts, loadSalesmenStock]);
 
-  // New handlers for modal-based issue stock
   const handleStartIssueForSalesman = (salesmanAlias) => {
     setSelectedSalesmanForIssue(salesmanAlias);
-    setShowIssueModal(true);
-    setSelectedProductName('');
     setSelectedProductCodes({});
     setIssueList([]);
   };
 
-  const handleProductNameChange = (productName) => {
-    setSelectedProductName(productName);
+  // Handler to toggle expand/collapse
+  const handleToggleProductName = (productName) => {
+    const isCurrentlyExpanded = expandedProductNames.includes(productName);
 
-    // Initialize all product codes with empty quantities
-    if (productName && productCodesByName[productName]) {
-      const initialQuantities = {};
-      productCodesByName[productName].forEach(product => {
-        initialQuantities[product.code] = '';
-      });
-      setSelectedProductCodes(initialQuantities);
-    } else {
-      setSelectedProductCodes({});
+    setExpandedProductNames((prev) =>
+      prev.includes(productName)
+        ? prev.filter((name) => name !== productName)
+        : [...prev, productName]
+    );
+
+    if (!isCurrentlyExpanded) {
+      setTimeout(() => {
+        const target = productItemRefs.current[productName];
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 120);
     }
   };
 
-  const handleProductCodeQuantityChange = (productCode, quantity) => {
+  // Handler for direct quantity change
+  const handleDirectProductCodeQuantityChange = (productCode, quantity) => {
     setSelectedProductCodes({
       ...selectedProductCodes,
       [productCode]: quantity,
     });
   };
 
-  const handleAddProductsFromModal = () => {
+  // Handler to add all selected quantities to issue list
+  const handleAddAllToIssueList = () => {
     const itemsToAdd = Object.entries(selectedProductCodes).filter(
       ([, quantity]) => quantity && parseInt(quantity) > 0
     );
-
     if (itemsToAdd.length === 0) {
       notifyError('Please enter quantity for at least one product');
       return;
     }
-
-    // Add all selected products to issue list
     const newItems = itemsToAdd.map(([productCode, quantity]) => ({
       id: Date.now() + Math.random(),
       productCode,
       quantity: parseInt(quantity),
       remarks: '',
     }));
-
     setIssueList([...issueList, ...newItems]);
     notifySuccess(`${newItems.length} item(s) added to list`);
-
-    // Keep the modal open but show success - user can continue adding
-    setShowIssueModal(false);
+    setSelectedProductCodes({});
   };
-
 
   const handleRemoveFromIssueList = (itemId) => {
     setIssueList(issueList.filter(item => item.id !== itemId));
@@ -324,7 +312,6 @@ const WarehouseDashboard = () => {
       }
 
       notifySuccess(`${successCount}/${issueList.length} items issued successfully`);
-      setShowIssueModal(false);
       setSelectedSalesmanForIssue('');
       setIssueList([]);
       loadInventory();
@@ -468,30 +455,6 @@ const WarehouseDashboard = () => {
     }
   };
 
-  // Handle Adjust Stock
-  const handleAdjustStock = async (e) => {
-    e.preventDefault();
-    if (!adjustForm.productCode || !adjustForm.quantity || !adjustForm.txnType) {
-      notifyError('Please fill all required fields');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      await warehouseAPI.adjustStock({
-        ...adjustForm,
-        quantity: parseInt(adjustForm.quantity),
-      });
-      notifySuccess('Stock adjusted successfully');
-      setAdjustForm({ productCode: '', quantity: '', txnType: 'TRANSFER_IN', remarks: '' });
-      loadInventory();
-      loadLedger();
-    } catch (error) {
-      notifyError(error.response?.data?.message || 'Failed to adjust stock');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
@@ -606,7 +569,7 @@ const WarehouseDashboard = () => {
 
         {/* ISSUE STOCK TAB */}
         {activeTab === 'issue' && (
-          <div className="tab-content">
+          <div className="tab-content issue-tab-content">
             <h2>Issue Stock to Salesman</h2>
 
             {!selectedSalesmanForIssue ? (
@@ -643,7 +606,6 @@ const WarehouseDashboard = () => {
             ) : (
               <div className="warehouse-form">
                 <h3>📦 Issue Stock to: <span className="selected-salesman">{selectedSalesmanForIssue}</span></h3>
-
                 <button
                   className="btn-back"
                   onClick={() => setSelectedSalesmanForIssue('')}
@@ -652,327 +614,221 @@ const WarehouseDashboard = () => {
                   ← Back to Salesman Selection
                 </button>
 
-                {/* Product Selection Modal */}
-                {showIssueModal && (
-                  <div className="modal-overlay">
-                    <div className="modal-content modal-large">
-                      <div className="modal-header">
-                        <h2>Select Products to Issue</h2>
-                        <button
-                          className="modal-close"
-                          onClick={() => setShowIssueModal(false)}
-                          type="button"
+                {/* Inline Product Selection and Issue List */}
+                <div className="issue-stock-container">
+                  <div className="product-selection">
+                    <h4>Select Products to Issue</h4>
+                    <div className="product-list">
+                      {availableProductNames.map((productName) => (
+                        <div
+                          key={productName}
+                          className="product-item"
+                          ref={(element) => {
+                            productItemRefs.current[productName] = element;
+                          }}
                         >
-                          ✕
-                        </button>
-                      </div>
-
-                      <div className="modal-body">
-                        <div className="form-group">
-                          <label>Select Product Category *</label>
-                          <select
-                            value={selectedProductName}
-                            onChange={(e) => handleProductNameChange(e.target.value)}
-                          >
-                            <option value="">-- Choose a Product --</option>
-                            {availableProductNames.map((name) => (
-                              <option key={name} value={name}>
-                                {name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {selectedProductName && productCodesByName[selectedProductName] && (
-                          <div className="product-codes-section">
-                            <h4>Variants for &quot;{selectedProductName}&quot;</h4>
-                            <p className="helper-text">Enter quantities for products you want to issue</p>
-                            <div className="product-codes-grid">
-                              {productCodesByName[selectedProductName].map((product) => (
-                                <div key={product.code} className="product-code-item-new">
-                                  <div className="product-code-header">
-                                    <span className="product-code-badge">{product.code}</span>
-                                    {product.variant && (
-                                      <span className="product-variant-text">{product.variant}</span>
-                                    )}
+                          <div className="product-name" onClick={() => handleToggleProductName(productName)}>
+                            {productName} {expandedProductNames.includes(productName) ? '▼' : '▲'}
+                          </div>
+                          {expandedProductNames.includes(productName) && (
+                            <div className="product-variants">
+                              {productCodesByName[productName].map((product) => (
+                                <div key={product.code} className="product-variant-item">
+                                  <div className="variant-info">
+                                    <span className="variant-code">{product.code}</span>
+                                    <span className="variant-details">
+                                      {product.variant} ({product.metric} {product.metricQuantity})
+                                    </span>
                                   </div>
-                                  {product.metric && product.metricQuantity && (
-                                    <div className="product-metric">
-                                      {product.metricQuantity} {product.metric}
-                                    </div>
-                                  )}
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={selectedProductCodes[product.code] || ''}
-                                    onChange={(e) =>
-                                      handleProductCodeQuantityChange(product.code, e.target.value)
-                                    }
-                                    placeholder="Quantity"
-                                    className="quantity-input-new"
-                                  />
+                                  <div className="variant-quantity">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={selectedProductCodes[product.code] || ''}
+                                      onChange={(e) => handleDirectProductCodeQuantityChange(product.code, e.target.value)}
+                                      placeholder="Qty"
+                                      className="quantity-input"
+                                    />
+                                  </div>
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="modal-footer">
-                        <button
-                          className="btn-cancel"
-                          onClick={() => setShowIssueModal(false)}
-                          type="button"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          className="btn-submit"
-                          onClick={handleAddProductsFromModal}
-                          type="button"
-                        >
-                          ➕ Add to Issue List
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  className="btn-add-item"
-                  onClick={() => {
-                    setShowIssueModal(true);
-                    setSelectedProductName('');
-                    setSelectedProductCodes({});
-                  }}
-                  type="button"
-                >
-                  ➕ Add Items
-                </button>
-
-
-                {issueList.length > 0 && (
-                  <div className="issue-list-section">
-                    <h4>Items to Issue ({issueList.length})</h4>
-                    <table className="issue-list-table">
-                      <thead>
-                        <tr>
-                          <th>Product Code</th>
-                          <th>Quantity (pcs)</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[...issueList]
-                          .sort((a, b) => a.productCode.localeCompare(b.productCode))
-                          .map((item) => (
-                          <tr key={item.id}>
-                            <td className="product-code-cell">{item.productCode}</td>
-                            <td className="quantity-cell">
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => handleUpdateIssueListQuantity(item.id, e.target.value)}
-                                className="quantity-edit-input"
-                              />
-                              <span className="unit-text">pcs</span>
-                            </td>
-                            <td>
-                              <button
-                                className="btn-remove"
-                                onClick={() => handleRemoveFromIssueList(item.id)}
-                                type="button"
-                                title="Remove from list"
-                              >
-                                ❌
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <div className="issue-actions">
-                      <button
-                        className="btn-submit"
-                        onClick={handleSubmitIssueList}
-                        disabled={loading}
-                        type="button"
-                      >
-                        {loading ? 'Processing...' : '✅ Issue All Items'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* RETURN STOCK TAB */}
-        {/* RETURN STOCK TAB */}
-        {activeTab === 'return' && (
-          <div className="tab-content">
-            <h2>⬅️ Return Stock from Salesman</h2>
-            <p className="subtitle">Select a salesman to view and return their stock</p>
-
-            {/* Step 1: Select Salesman */}
-            <div className="warehouse-form" style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <div className="form-group">
-                <label>Select Salesman *</label>
-                <select
-                  value={selectedSalesmanForReturn}
-                  onChange={(e) => handleSelectSalesmanForReturn(e.target.value)}
-                  className="salesman-select"
-                >
-                  <option value="">-- Choose Salesman --</option>
-                  {salesmen.map((s) => (
-                    <option key={s.id} value={s.alias}>
-                      {s.displayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Step 2: Show Salesman's Current Stock */}
-            {selectedSalesmanForReturn && (
-              <div className="return-stock-container">
-                {loading ? (
-                  <p className="loading">Loading stock...</p>
-                ) : salesmanCurrentStock.length === 0 ? (
-                  <div className="no-data">
-                    <p>No stock found for {selectedSalesmanForReturn}</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="stock-header">
-                      <h3>Current Stock with {selectedSalesmanForReturn}</h3>
-                      <button
-                        onClick={handleReturnAllStock}
-                        className="btn-return-all"
-                        disabled={loading}
-                      >
-                        🔄 Return All Stock
-                      </button>
-                    </div>
-
-                    <div className="return-stock-list">
-                      {salesmanCurrentStock.map((product, idx) => (
-                        <div key={idx} className="return-stock-item">
-                          <div className="product-info-return">
-                            <div className="product-code-badge">{product.productCode}</div>
-                            <div className="product-details">
-                              <span className="product-variant">{product.variant || product.productName}</span>
-                              <span className="current-stock-info">
-                                Current: <strong>{product.quantity} pcs</strong>
-                                {product.metric === 'lit' && product.metricQuantity && (
-                                  <span className="volume">
-                                    {' '}({(product.quantity * parseFloat(product.metricQuantity)).toFixed(2)} L)
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="return-quantity-input">
-                            <label>Return Qty:</label>
-                            <input
-                              type="number"
-                              min="0"
-                              max={product.quantity}
-                              value={returnList[product.productCode] || ''}
-                              onChange={(e) => handleReturnQuantityChange(product.productCode, e.target.value)}
-                              placeholder="0"
-                              className="qty-input"
-                            />
-                            <button
-                              onClick={() => handleReturnQuantityChange(product.productCode, product.quantity)}
-                              className="btn-max"
-                              title="Return all"
-                            >
-                              Max
-                            </button>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
-
-                    <div className="return-actions">
+                    <div className="actions">
                       <button
-                        onClick={handleReturnSelectedItems}
-                        className="btn-submit"
+                        className="btn-add-to-list"
+                        onClick={handleAddAllToIssueList}
                         disabled={loading}
+                        type="button"
                       >
-                        {loading ? 'Processing...' : '✓ Return Selected Items'}
+                        ➕ Add Selected to Issue List
                       </button>
                     </div>
-                  </>
-                )}
+                  </div>
+
+                  {/* Issue List Table */}
+                  {issueList.length > 0 && (
+                    <div className="issue-list-section">
+                      <h4>Items to Issue ({issueList.length})</h4>
+                      <table className="issue-list-table">
+                        <thead>
+                          <tr>
+                            <th>Product Code</th>
+                            <th>Quantity (pcs)</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...issueList]
+                            .sort((a, b) => a.productCode.localeCompare(b.productCode))
+                            .map((item) => (
+                            <tr key={item.id}>
+                              <td className="product-code-cell">{item.productCode}</td>
+                              <td className="quantity-cell">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => handleUpdateIssueListQuantity(item.id, e.target.value)}
+                                  className="quantity-edit-input"
+                                />
+                                <span className="unit-text">pcs</span>
+                              </td>
+                              <td>
+                                <button
+                                  className="btn-remove"
+                                  onClick={() => handleRemoveFromIssueList(item.id)}
+                                  type="button"
+                                  title="Remove from list"
+                                >
+                                  ❌
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="issue-actions">
+                        <button
+                          className="btn-submit"
+                          onClick={handleSubmitIssueList}
+                          disabled={loading}
+                          type="button"
+                        >
+                          {loading ? 'Processing...' : '✅ Issue All Items'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* ADJUST STOCK TAB */}
-        {activeTab === 'adjust' && (
+        {/* RETURN STOCK TAB */}
+        {activeTab === 'return' && (
           <div className="tab-content">
-            <h2>Adjust Warehouse Stock</h2>
-            <form onSubmit={handleAdjustStock} className="warehouse-form">
-              <div className="form-group">
-                <label>Product Code *</label>
-                <select
-                  required
-                  value={adjustForm.productCode}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, productCode: e.target.value })}
-                >
-                  <option value="">Select Product</option>
-                  {products.map((p) => (
-                    <option key={p.productCode} value={p.productCode}>
-                      {p.productCode} - {p.productName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <h2>⬅️ Return Stock from Salesman</h2>
+                <p className="subtitle">Select a salesman to view and return their stock</p>
 
-              <div className="form-group">
-                <label>Transaction Type *</label>
-                <select
-                  required
-                  value={adjustForm.txnType}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, txnType: e.target.value })}
-                >
-                  <option value="TRANSFER_IN">Transfer In (Stock Received)</option>
-                  <option value="DAMAGE">Damage (Stock Lost)</option>
-                  <option value="MANUAL_ADJUST">Manual Adjustment</option>
-                </select>
-              </div>
+                {/* Step 1: Select Salesman */}
+                <div className="warehouse-form" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                  <div className="form-group">
+                    <label>Select Salesman *</label>
+                    <select
+                      value={selectedSalesmanForReturn}
+                      onChange={(e) => handleSelectSalesmanForReturn(e.target.value)}
+                      className="salesman-select"
+                    >
+                      <option value="">-- Choose Salesman --</option>
+                      {salesmen.map((s) => (
+                        <option key={s.id} value={s.alias}>
+                          {s.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-              <div className="form-group">
-                <label>Quantity (pcs) *</label>
-                <input
-                  type="number"
-                  required
-                  value={adjustForm.quantity}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
-                  placeholder="Enter quantity (positive for add, will be adjusted for damage)"
-                />
-              </div>
+                {/* Step 2: Show Salesman's Current Stock */}
+                {selectedSalesmanForReturn && (
+                  <div className="return-stock-container">
+                    {loading ? (
+                      <p className="loading">Loading stock...</p>
+                    ) : salesmanCurrentStock.length === 0 ? (
+                      <div className="no-data">
+                        <p>No stock found for {selectedSalesmanForReturn}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="stock-header">
+                          <h3>Current Stock with {selectedSalesmanForReturn}</h3>
+                          <button
+                            onClick={handleReturnAllStock}
+                            className="btn-return-all"
+                            disabled={loading}
+                          >
+                            🔄 Return All Stock
+                          </button>
+                        </div>
 
-              <div className="form-group">
-                <label>Remarks</label>
-                <textarea
-                  value={adjustForm.remarks}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, remarks: e.target.value })}
-                  placeholder="Optional notes"
-                  rows="3"
-                />
-              </div>
+                        <div className="return-stock-list">
+                          {salesmanCurrentStock.map((product, idx) => (
+                            <div key={idx} className="return-stock-item">
+                              <div className="product-info-return">
+                                <div className="product-code-badge">{product.productCode}</div>
+                                <div className="product-details">
+                                  <span className="product-variant">{product.variant || product.productName}</span>
+                                  <span className="current-stock-info">
+                                    Current: <strong>{product.quantity} pcs</strong>
+                                    {product.metric === 'lit' && product.metricQuantity && (
+                                      <span className="volume">
+                                        {' '}({(product.quantity * parseFloat(product.metricQuantity)).toFixed(2)} L)
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="return-quantity-input">
+                                <label>Return Qty:</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={product.quantity}
+                                  value={returnList[product.productCode] || ''}
+                                  onChange={(e) => handleReturnQuantityChange(product.productCode, e.target.value)}
+                                  placeholder="0"
+                                  className="qty-input"
+                                />
+                                <button
+                                  onClick={() => handleReturnQuantityChange(product.productCode, product.quantity)}
+                                  className="btn-max"
+                                  title="Return all"
+                                >
+                                  Max
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
-              <button type="submit" disabled={loading} className="btn-submit">
-                {loading ? 'Processing...' : 'Adjust Stock'}
-              </button>
-            </form>
+                        <div className="return-actions">
+                          <button
+                            onClick={handleReturnSelectedItems}
+                            className="btn-submit"
+                            disabled={loading}
+                          >
+                            {loading ? 'Processing...' : '✓ Return Selected Items'}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
           </div>
         )}
 
@@ -980,37 +836,29 @@ const WarehouseDashboard = () => {
         {activeTab === 'salesmen-stock' && (
           <div className="tab-content">
             <h2>👥 Salesmen Stock Summary</h2>
-            <p className="subtitle">Click on a card to view details • Click again to close</p>
 
             {loading ? (
               <p className="loading">Loading salesmen stock...</p>
             ) : salesmenStock.length === 0 ? (
-              <p className="no-data">No stock with salesmen currently</p>
+              <p className="no-data">No stock found with any salesman</p>
             ) : (
               <div className="salesmen-tickets-container">
                 {salesmenStock.map((salesman, idx) => (
                   <div
                     key={idx}
                     className={`salesman-ticket ${selectedSalesmanCard?.salesmanAlias === salesman.salesmanAlias ? 'selected' : ''}`}
-                    onClick={() => {
-                      // Toggle: if same card is clicked, close it; otherwise, open the clicked card
-                      if (selectedSalesmanCard?.salesmanAlias === salesman.salesmanAlias) {
-                        setSelectedSalesmanCard(null);
-                      } else {
-                        setSelectedSalesmanCard(salesman);
-                      }
-                    }}
+                    onClick={() => setSelectedSalesmanCard(salesman)}
                   >
-                    <div className="ticket-id">#{idx + 1}</div>
+                    <span className="ticket-id">SM-{idx + 1}</span>
                     <div className="ticket-header">
                       <div className="ticket-title">
                         {salesman.firstName} {salesman.lastName}
                       </div>
-                      <div className="ticket-alias">{salesman.salesmanAlias}</div>
+                      <div className="ticket-alias">@{salesman.salesmanAlias}</div>
                     </div>
                     <div className="ticket-footer">
                       <span className="ticket-badge products">
-                        📦 {salesman.totalProducts}
+                        {salesman.totalProducts} items
                       </span>
                       <span className="ticket-badge quantity">
                         {salesman.totalQuantity} pcs
